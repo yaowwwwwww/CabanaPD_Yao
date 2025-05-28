@@ -1,0 +1,8 @@
+include(CMakeFindDependencyMacro)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}" )
+list(APPEND CMAKE_PREFIX_PATH /home/wuwen/program/kokkos_install;/home/wuwen/program/googletest_install)
+find_dependency(Cabana REQUIRED COMPONENTS Core Grid)
+if(NOT CabanaPD_INTERNAL_JSON)
+  find_dependency(nlohmann_json REQUIRED)
+endif()
+include("${CMAKE_CURRENT_LIST_DIR}/CabanaPD_Targets.cmake")

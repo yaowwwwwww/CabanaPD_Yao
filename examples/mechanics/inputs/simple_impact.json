@@ -1,0 +1,23 @@
+{
+    "num_cells"              : {"value": [100, 100, 10]}, 
+    "system_size"            : {"value": [0.01, 0.01, 0.001], "unit": "m"}, 
+    
+    "density"                : {"value": 8960.0, "unit": "kg/m^3"},
+    "elastic_modulus"        : {"value": 110.0e9, "unit": "Pa"},  
+    "fracture_energy"        : {"value": 1000.0, "unit": "J/m^2"}, 
+    "horizon"                : {"value": 0.0003, "unit": "m"},    
+    "yield_stress"           : {"value": 70.0e6, "unit": "Pa"},   
+
+    "particle_radius"        : {"value": 0.0001, "unit": "m"},    
+    "impact_velocity"        : {"value": 500.0, "unit": "m/s"},   
+
+    "low_corner"             : {"value": [0.0, 0.0, 0.0], "unit": "m"},
+    "high_corner"            : {"value": [0.01, 0.01, 0.001], "unit": "m"}, 
+
+    "final_time"             : {"value": 5.0e-7, "unit": "s"},    
+    "timestep"               : {"value": 1.0e-9, "unit": "s"},   
+    "timestep_safety_factor" : {"value": 0.85},               
+    "output_frequency"       : {"value": 100},                 
+    "output_reference"       : {"value": false},               
+    "output_file"            : {"value": "cold_spray_impact.out"} 
+}

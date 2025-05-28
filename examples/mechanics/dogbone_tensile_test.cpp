@@ -262,11 +262,15 @@ void dogboneTensileTestExample( const std::string filename )
     // ====================================================
     solver.init( bc );
     solver.run( bc, output_fx, output_fy, output_fz, output_yl, output_yr );
+
+
 }
 
 // Initialize MPI+Kokkos.
 int main( int argc, char* argv[] )
 {
+    std::cout << "hereadsfsfdas" << std::endl << std::flush;
+    std::cout << "hereasdfffffffffffffffffffff" << std::endl << std::flush;
     MPI_Init( &argc, &argv );
     Kokkos::initialize( argc, argv );
 

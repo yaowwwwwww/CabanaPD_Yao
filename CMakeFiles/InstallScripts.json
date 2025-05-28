@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/wuwen/program/CabanaPD/cmake_install.cmake",
+		"/home/wuwen/program/CabanaPD/src/cmake_install.cmake",
+		"/home/wuwen/program/CabanaPD/examples/cmake_install.cmake",
+		"/home/wuwen/program/CabanaPD/examples/mechanics/cmake_install.cmake",
+		"/home/wuwen/program/CabanaPD/examples/thermomechanics/cmake_install.cmake",
+		"/home/wuwen/program/CabanaPD/examples/dem/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
