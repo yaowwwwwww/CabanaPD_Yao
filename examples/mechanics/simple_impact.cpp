@@ -213,7 +213,7 @@ void coldSprayImpactExample( const std::string filename )
     Kokkos::parallel_reduce( "count_impactor_pids", particles.size(), 
         KOKKOS_LAMBDA( const int pid, int& count ) {
             double x_pid[3];
-            x_ref_local(pid, 0) = x_pid[0];
+            x_ref_local(pid, 0) = x_pid[0]; 
             x_ref_local(pid, 1) = x_pid[1];
             x_ref_local(pid, 2) = x_pid[2];
 
