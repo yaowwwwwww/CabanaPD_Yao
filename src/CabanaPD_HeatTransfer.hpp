@@ -27,14 +27,14 @@ class HeatTransfer;
 template <class MemorySpace, class MechanicsType, class... ModelParams>
 class HeatTransfer<MemorySpace, ForceModel<PMB, MechanicsType, NoFracture,
                                            DynamicTemperature, ModelParams...>>
-    : public Force<MemorySpace, BaseForceModel>
+    : public BaseForce<MemorySpace>
 {
   public:
     // Using the default exec_space.
     using exec_space = typename MemorySpace::execution_space;
     using model_type = ForceModel<PMB, MechanicsType, NoFracture,
                                   DynamicTemperature, ModelParams...>;
-    using base_type = Force<MemorySpace, BaseForceModel>;
+    using base_type = BaseForce<MemorySpace>;
     using neighbor_list_type = typename base_type::neighbor_list_type;
 
   protected:
@@ -144,7 +144,7 @@ class HeatTransfer<MemorySpace, ForceModel<PMB, MechanicsType, Fracture,
                   const model_type model )
         : base_type( half_neigh, force,
                      typename base_type::model_type(
-                         PMB{}, NoFracture{}, model.delta, model.K,
+                         PMB{}, NoFracture{}, model.cutoff(), model.K,
                          model.temperature, model.kappa, model.cp, model.alpha,
                          model.temp0, model.constant_microconductivity ) )
         , fracture_type( force.getBrokenBonds() )
