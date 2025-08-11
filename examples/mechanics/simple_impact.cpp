@@ -117,7 +117,7 @@ void coldspray( const std::string filename )
         auto x = particles.sliceReferencePosition();
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
-        auto dx = particles.dx;
+        auto dx = particles.dx ;
 
 
 
@@ -150,25 +150,65 @@ void coldspray( const std::string filename )
         CabanaPD::Solver solver( inputs, particles, force_model,
                                  contact_model );
 
-        // ========================
-        // Boundary condition: fix bottom Z
-        // ========================
-        double z_bc = low_corner[2];  
-         
+             double boundary_layer_thickness = 0.003; 
+        double bottom_z_thickness = 0.003; 
+
+        double z_bc = low_corner[2]; 
         CabanaPD::Region<CabanaPD::RectangularPrism> bottom_region(
             low_corner[0], high_corner[0],
             low_corner[1], high_corner[1],
-            z_bc - 0.5*dx[0], z_bc +0.5*dx[0] );
-        
-            double boundary_layer_thickness = 0.5 * dx[0]; // 定义一个粒子半径的厚度，用于选中边界粒子层
-  
-        //  
-        auto bc = createBoundaryCondition(
-            CabanaPD::ForceValueBCTag{}, 0.0, exec_space{},
-            particles, bottom_region);        
+            z_bc - bottom_z_thickness, z_bc + bottom_z_thickness );
 
-        solver.init(bc);
-        solver.run(bc);
+        CabanaPD::Region<CabanaPD::RectangularPrism> x_min_side_region(
+            low_corner[0] - boundary_layer_thickness, low_corner[0] + boundary_layer_thickness,
+            low_corner[1], high_corner[1],                           
+            low_corner[2], high_corner[2]                            
+        );
+        CabanaPD::Region<CabanaPD::RectangularPrism> x_max_side_region(
+            high_corner[0] - boundary_layer_thickness, high_corner[0] + boundary_layer_thickness,
+            low_corner[1], high_corner[1],
+            low_corner[2], high_corner[2]
+        );
+        CabanaPD::Region<CabanaPD::RectangularPrism> y_min_side_region(
+            low_corner[0], high_corner[0],
+            low_corner[1] - boundary_layer_thickness, low_corner[1] + boundary_layer_thickness,
+            low_corner[2], high_corner[2]
+        );
+        CabanaPD::Region<CabanaPD::RectangularPrism> y_max_side_region(
+            low_corner[0], high_corner[0],
+            high_corner[1] - boundary_layer_thickness, high_corner[1] + boundary_layer_thickness,
+            low_corner[2], high_corner[2]
+        );
+
+        // --- 2. 获取速度切片，并定义一个 UserFunctor 来将速度设置为 0.0 (实现固定位移) ---
+        // 关键：获取速度切片
+        auto v_slice = particles.sliceVelocity(); 
+
+        auto fix_velocity_to_zero_op = KOKKOS_LAMBDA( const int pid, const double /*time*/ )
+        {
+            // 将粒子的 X, Y, Z 三个方向的速度都设置为 0.0
+            v_slice( pid, 0 ) = 0.0; // 固定 X 方向的位移 (通过固定速度)
+            v_slice( pid, 1 ) = 0.0; // 固定 Y 方向的位移 (通过固定速度)
+            v_slice( pid, 2 ) = 0.0; // 固定 Z 方向的位移 (通过固定速度)
+        };
+
+        // --- 3. 创建一个单一的边界条件对象，将 UserFunctor 和所有区域作为参数传入 ---
+        auto bc_combined_fixed = createBoundaryCondition(
+            fix_velocity_to_zero_op, // 第一个参数：UserFunctor
+            exec_space{},            // 第二个参数：执行空间
+            particles,               // 第三个参数：粒子数据
+            true,                    // 第四个参数：布尔值 (表示每次都强制更新)
+            bottom_region
+        //     ,           // 区域 1
+        //    x_min_side_region,       // 区域 2
+        //    x_max_side_region,       // 区域 3
+        //    y_min_side_region,       // 区域 4
+        //    y_max_side_region        // 区域 5
+        );        
+
+        // --- 4. 将这一个边界条件对象传入求解器 ---
+        solver.init(bc_combined_fixed); 
+        solver.run(bc_combined_fixed);
 
     }
     // ====================================================
