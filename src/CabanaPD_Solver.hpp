@@ -99,9 +99,11 @@ class Solver
     using force_fracture_type = typename force_model_type::fracture_type;
     using force_type = Force<memory_space, force_model_type, force_model_tag,
                              force_fracture_type>;
+    using force_thermal_type =
+        typename force_model_type::thermal_type::base_type;
     using comm_type =
         Comm<ParticleType, typename force_model_type::base_model::base_type,
-             typename ParticleType::thermal_type>;
+             typename force_model_type::material_type, force_thermal_type>;
     using neigh_iter_tag = Cabana::SerialOpTag;
 
     // Optional module types.
@@ -167,6 +169,10 @@ class Solver
                     "Contact with MPI is currently disabled." );
         }
 
+        // Update optional property ghost sizes if needed.
+        if constexpr ( std::is_same<typename force_model_type::material_type,
+                                    MultiMaterial>::value )
+            force_model.update( particles.sliceType() );
         // Update temperature ghost size if needed.
         if constexpr ( is_temperature_dependent<
                            typename force_model_type::thermal_type>::value )
@@ -249,7 +255,10 @@ class Solver
         if ( !boundary_condition.forceUpdate() )
             boundary_condition.apply( exec_space(), particles, 0.0 );
 
-        // Communicate temperature.
+        // Communicate optional properties.
+        if constexpr ( std::is_same<typename force_model_type::material_type,
+                                    MultiMaterial>::value )
+            comm->gatherMaterial();
         if constexpr ( is_temperature_dependent<
                            typename force_model_type::thermal_type>::value )
             comm->gatherTemperature();
@@ -462,7 +471,7 @@ class Solver
         if ( step % output_frequency == 0 )
         {
             _step_timer.start();
-            auto W = computeEnergy( *force, particles, neigh_iter_tag() );
+            computeEnergy( *force, particles, neigh_iter_tag() );
             computeStress( *force, particles, neigh_iter_tag() );
 
             particles.output( step / output_frequency, step * dt,
@@ -470,7 +479,7 @@ class Solver
 
             // Timer has to be stopped before printing output.
             _step_timer.stop();
-            step_output( step, W );
+            step_output( step );
         }
     }
 
@@ -478,18 +487,30 @@ class Solver
     {
         // Output after construction and initial forces.
         std::ofstream out( output_file, std::ofstream::app );
-        _init_time += _init_timer.time() + _neighbor_timer.time() +
-                      particles.timeInit() + comm->timeInit() +
-                      integrator->timeInit() + boundary_init_time;
+        _init_time += _init_timer.time() + particles.timeInit() +
+                      comm->timeInit() + integrator->timeInit() +
+                      boundary_init_time;
         log( out, "Init-Time(s): ", _init_time );
         log( out, "Init-Neighbor-Time(s): ", _neighbor_timer.time(), "\n" );
         log( out, "#Timestep/Total-steps Simulation-time Total-strain-energy "
-                  "Step-Time(s) Force-Time(s) Comm-Time(s) Integrate-Time(s) "
-                  "Energy-Time(s) Output-Time(s) Particle*steps/s" );
+                  "Total-Damage "
+                  "Step-Time(s) Force-Time(s) Neighbor-Time(s) Comm-Time(s) "
+                  "Integrate-Time(s) Energy-Time(s) Output-Time(s) "
+                  "Particle*steps/s" );
     }
 
-    void step_output( const int step, const double W )
+    void step_output( const int step )
     {
+        // All ranks must reduce - do this outside the if block since only rank
+        // 0 will print below.
+        double global_damage = 0.0;
+        if constexpr ( is_fracture<
+                           typename force_model_type::fracture_type>::value )
+        {
+            global_damage = updateGlobal( force->totalDamage() );
+        }
+        double relative_damage = global_damage / particles.numGlobal();
+
         if ( print )
         {
             std::ofstream out( output_file, std::ofstream::app );
@@ -501,7 +522,8 @@ class Solver
             double integrate_time = integrator->time();
             double force_time = force->time();
             double energy_time = force->timeEnergy();
-            double neigh_time = force->timeNeighbor();
+            // Init neighbor build and later (contact) rebuilds.
+            double neigh_time = _neighbor_timer.time() + force->timeNeighbor();
             double output_time = particles.timeOutput();
             _total_time += step_time;
             // Instantaneous rate.
@@ -512,10 +534,10 @@ class Solver
             _step_timer.reset();
             log( out, std::fixed, std::setprecision( 6 ), step, "/", num_steps,
                  " ", std::scientific, std::setprecision( 2 ), step * dt, " ",
-                 W, " ", std::fixed, _total_time, " ", force_time, " ",
+                 force->totalStrainEnergy(), " ", relative_damage, " ",
+                 std::fixed, _total_time, " ", force_time, " ", neigh_time, " ",
                  comm_time, " ", integrate_time, " ", energy_time, " ",
-                 neigh_time, " ", output_time, " ", std::scientific,
-                 p_steps_per_sec );
+                 output_time, " ", std::scientific, p_steps_per_sec );
             out.close();
         }
     }
@@ -524,15 +546,17 @@ class Solver
     {
         if ( print )
         {
+            // Add the last steps and initialization to total.
+            _total_time += _step_timer.time() + _init_time;
+
             std::ofstream out( output_file, std::ofstream::app );
             double comm_time = comm->time();
             double integrate_time = integrator->time();
             double force_time = force->time();
             double energy_time = force->timeEnergy();
             double output_time = particles.timeOutput();
-            double neighbor_time = _neighbor_timer.time();
-            _total_time = _init_time + comm_time + integrate_time + force_time +
-                          energy_time + output_time + particles.time();
+            // Init neighbor build and later (contact) rebuilds.
+            double neigh_time = _neighbor_timer.time() + force->timeNeighbor();
 
             // Rates over the whole simulation.
             double steps_per_sec =
@@ -540,17 +564,18 @@ class Solver
             double p_steps_per_sec =
                 static_cast<double>( particles.numGlobal() ) * steps_per_sec;
             log( out, std::fixed, std::setprecision( 2 ),
-                 "\n#Procs Particles | Total Force Comm Integrate Energy "
-                 "Output Init Init_Neighbor |\n",
+                 "\n#Procs Particles | Total Force Neighbor Comm Integrate "
+                 "Energy "
+                 "Output Init |\n",
                  comm->mpi_size, " ", particles.numGlobal(), " | \t",
-                 _total_time, " ", force_time, " ", comm_time, " ",
-                 integrate_time, " ", energy_time, " ", output_time, " ",
-                 _init_time, " ", neighbor_time, " | PERFORMANCE\n", std::fixed,
-                 comm->mpi_size, " ", particles.numGlobal(), " | \t", 1.0, " ",
-                 force_time / _total_time, " ", comm_time / _total_time, " ",
-                 integrate_time / _total_time, " ", energy_time / _total_time,
-                 " ", output_time / _total_time, " ", _init_time / _total_time,
-                 " ", neighbor_time / _total_time, " | FRACTION\n\n",
+                 _total_time, " ", force_time, " ", neigh_time, " ", comm_time,
+                 " ", integrate_time, " ", energy_time, " ", output_time, " ",
+                 _init_time, " | PERFORMANCE\n", std::fixed, comm->mpi_size,
+                 " ", particles.numGlobal(), " | \t", 1.0, " ",
+                 force_time / _total_time, " ", neigh_time / _total_time, " ",
+                 comm_time / _total_time, " ", integrate_time / _total_time,
+                 " ", energy_time / _total_time, " ", output_time / _total_time,
+                 " ", _init_time / _total_time, " | FRACTION\n\n",
                  "#Steps/s Particle-steps/s Particle-steps/proc/s\n",
                  std::scientific, steps_per_sec, " ", p_steps_per_sec, " ",
                  p_steps_per_sec / comm->mpi_size );
@@ -575,6 +600,15 @@ class Solver
     void printRegion( RegionType region )
     {
         region.print( particles.comm() );
+    }
+
+    auto updateGlobal( double local )
+    {
+        double global = 0.0;
+        // Not using Allreduce because global values are only used for printing.
+        MPI_Reduce( &local, &global, 1, MPI_DOUBLE, MPI_SUM, 0,
+                    MPI_COMM_WORLD );
+        return global;
     }
 
     int num_steps;
