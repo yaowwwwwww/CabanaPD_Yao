@@ -84,7 +84,7 @@ void coldspray( const std::string filename )
     // Do not create particles outside given cylindrical region
     auto init_op = KOKKOS_LAMBDA(const int, const double x[3])
     {
-        // 球体区域
+        // Sphere
         double rsq = (x[0] - ball_center[0]) * (x[0] - ball_center[0]) +
                      (x[1] - ball_center[1]) * (x[1] - ball_center[1]) +
                      (x[2] - ball_center[2]) * (x[2] - ball_center[2]);
@@ -121,11 +121,11 @@ void coldspray( const std::string filename )
                     (x(pid, 1) - ball_center[1]) * (x(pid, 1) - ball_center[1]) <=
                 ball_radius * ball_radius)
             {
-                v(pid, 2) = -vz_ball; // 冲击速度向下
+                v(pid, 2) = -vz_ball;  //Sphere
             }
             else
             {
-                v(pid, 2) = 0.0; // 板静止
+                v(pid, 2) = 0.0; // Plate
             }
         };
         particles.updateParticles( exec_space{}, init_functor );
@@ -167,11 +167,11 @@ void coldspray( const std::string filename )
                     (x(pid, 1) - ball_center[1]) * (x(pid, 1) - ball_center[1]) <=
                 ball_radius * ball_radius)
             {
-                v(pid, 2) = -vz_ball; // 冲击速度向下
+                v(pid, 2) = -vz_ball;  
             }
             else
             {
-                v(pid, 2) = 0.0; // 板静止
+                v(pid, 2) = 0.0;  
             }
         };
         particles.updateParticles( exec_space{}, init_functor );
