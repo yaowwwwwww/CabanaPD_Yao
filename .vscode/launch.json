@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug ColdSprayImpact (single process)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/wuwen/program/CabanaPD_Yao/build/examples/mechanics/ColdSprayImpact",
+            "args": [
+                "/home/wuwen/program/CabanaPD_Yao/examples/mechanics/inputs/simple_impact.json"
+            ],
+            "stopAtEntry": true,
+            "cwd": "/home/wuwen/program/CabanaPD_Yao/build/examples/mechanics", 
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

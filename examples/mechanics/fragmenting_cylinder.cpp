@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2022-2023 by Oak Ridge National Laboratory                 *
+ * Copyright (c) 2022 by Oak Ridge National Laboratory                      *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of CabanaPD. CabanaPD is distributed under a           *
@@ -18,8 +18,8 @@
 
 #include <CabanaPD.hpp>
 
-// Simulate an expanding cylinder resulting in fragmentation.
-void fragmentingCylinderExample( const std::string filename )
+// Simulate elastic wave propagation from an initial displacement field.
+void elasticWaveExample( const std::string filename )
 {
     // ====================================================
     //               Choose Kokkos spaces
@@ -36,15 +36,10 @@ void fragmentingCylinderExample( const std::string filename )
     //                Material parameters
     // ====================================================
     double rho0 = inputs["density"];
-    double K = inputs["bulk_modulus"];
-    // double G = inputs["shear_modulus"]; // Only for LPS.
-    double sc = inputs["critical_stretch"];
+    auto K = inputs["bulk_modulus"];
+    double G = inputs["shear_modulus"];
     double delta = inputs["horizon"];
     delta += 1e-10;
-    // For PMB or LPS with influence_type == 1
-    double G0 = 9 * K * delta * ( sc * sc ) / 5;
-    // For LPS with influence_type == 0 (default)
-    // double G0 = 15 * K * delta * ( sc * sc ) / 8;
 
     // ====================================================
     //                  Discretization
@@ -59,120 +54,67 @@ void fragmentingCylinderExample( const std::string filename )
     // ====================================================
     //                    Force model
     // ====================================================
-    using model_type = CabanaPD::PMB;
-    CabanaPD::ForceModel force_model( model_type{}, delta, K, G0 );
+    using model_type = CabanaPD::LinearLPS;
+    CabanaPD::ForceModel force_model( model_type{}, CabanaPD::NoFracture{},
+                                      delta, K, G );
 
     // ====================================================
-    //    Custom particle generation and initialization
+    //                 Particle generation
     // ====================================================
-    double x_center = 0.5 * ( low_corner[0] + high_corner[0] );
-    double y_center = 0.5 * ( low_corner[1] + high_corner[1] );
-    double z_center = 0.5 * ( low_corner[2] + high_corner[2] );
-    double Rout = inputs["cylinder_outer_radius"];
-    double Rin = inputs["cylinder_inner_radius"];
-    double H = inputs["cylinder_height"];
+    CabanaPD::Particles particles( memory_space{}, model_type{}, low_corner,
+                                   high_corner, num_cells, halo_width,
+                                   exec_space{} );
 
-    // Do not create particles outside given cylindrical region
-    auto init_op = KOKKOS_LAMBDA( const int, const double x[3] )
+    // ====================================================
+    //            Custom particle initialization
+    // ====================================================
+    auto rho = particles.sliceDensity();
+    auto x = particles.sliceReferencePosition();
+    auto u = particles.sliceDisplacement();
+    auto v = particles.sliceVelocity();
+
+    auto init_functor = KOKKOS_LAMBDA( const int pid )
     {
-        double rsq = ( x[0] - x_center ) * ( x[0] - x_center ) +
-                     ( x[1] - y_center ) * ( x[1] - y_center );
-        if ( rsq < Rin * Rin || rsq > Rout * Rout ||
-             x[2] > z_center + 0.5 * H || x[2] < z_center - 0.5 * H )
-            return false;
-        return true;
+        // Density
+        rho( pid ) = rho0;
+
+        // Initial conditions: displacements and velocities
+        double a = 0.001;
+        double r0 = 0.25;
+        double l = 0.07;
+        double norm =
+            std::sqrt( x( pid, 0 ) * x( pid, 0 ) + x( pid, 1 ) * x( pid, 1 ) +
+                       x( pid, 2 ) * x( pid, 2 ) );
+        double diff = norm - r0;
+        double arg = diff * diff / l / l;
+        for ( int d = 0; d < 3; d++ )
+        {
+            double comp = 0.0;
+            if ( norm > 0.0 )
+                comp = x( pid, d ) / norm;
+            u( pid, d ) = a * std::exp( -arg ) * comp;
+            v( pid, d ) = 0.0;
+        }
     };
+    particles.updateParticles( exec_space{}, init_functor );
 
     // ====================================================
-    //  Simulation run with contact physics
+    //                   Create solver
     // ====================================================
-    if ( inputs["use_contact"] )
-    {
-        using contact_type = CabanaPD::NormalRepulsionModel;
-        CabanaPD::Particles particles(
-            memory_space{}, contact_type{}, low_corner, high_corner, num_cells,
-            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
+    CabanaPD::Solver solver( inputs, particles, force_model );
 
-        auto rho = particles.sliceDensity();
-        auto x = particles.sliceReferencePosition();
-        auto v = particles.sliceVelocity();
-        auto f = particles.sliceForce();
-        auto dx = particles.dx;
-
-        double vrmax = inputs["max_radial_velocity"];
-        double vrmin = inputs["min_radial_velocity"];
-        double vzmax = inputs["max_vertical_velocity"];
-        double zmin = z_center - 0.5 * H;
-
-        auto init_functor = KOKKOS_LAMBDA( const int pid )
-        {
-            // Density
-            rho( pid ) = rho0;
-
-            // Velocity
-            double zfactor = ( ( x( pid, 2 ) - zmin ) / ( 0.5 * H ) ) - 1;
-            double vr = vrmax - vrmin * zfactor * zfactor;
-            v( pid, 0 ) =
-                vr * Kokkos::cos( Kokkos::atan2( x( pid, 1 ), x( pid, 0 ) ) );
-            v( pid, 1 ) =
-                vr * Kokkos::sin( Kokkos::atan2( x( pid, 1 ), x( pid, 0 ) ) );
-            v( pid, 2 ) = vzmax * zfactor;
-        };
-        particles.updateParticles( exec_space{}, init_functor );
-
-        // Use contact radius and extension relative to particle spacing.
-        double r_c = inputs["contact_horizon_factor"];
-        double r_extend = inputs["contact_horizon_extend_factor"];
-        // NOTE: dx/2 is when particles first touch.
-        r_c *= dx[0] / 2.0;
-        r_extend *= dx[0];
-
-        contact_type contact_model( delta, r_c, r_extend, K );
-
-        CabanaPD::Solver solver( inputs, particles, force_model,
-                                 contact_model );
-        solver.init();
-        solver.run();
-    }
     // ====================================================
-    //  Simulation run without contact
+    //                   Simulation run
     // ====================================================
-    else
-    {
-        CabanaPD::Particles particles(
-            memory_space{}, model_type{}, low_corner, high_corner, num_cells,
-            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
+    solver.init();
+    solver.run();
 
-        auto rho = particles.sliceDensity();
-        auto x = particles.sliceReferencePosition();
-        auto v = particles.sliceVelocity();
-        auto f = particles.sliceForce();
-
-        double vrmax = inputs["max_radial_velocity"];
-        double vrmin = inputs["min_radial_velocity"];
-        double vzmax = inputs["max_vertical_velocity"];
-        double zmin = z_center - 0.5 * H;
-
-        auto init_functor = KOKKOS_LAMBDA( const int pid )
-        {
-            // Density
-            rho( pid ) = rho0;
-
-            // Velocity
-            double zfactor = ( ( x( pid, 2 ) - zmin ) / ( 0.5 * H ) ) - 1;
-            double vr = vrmax - vrmin * zfactor * zfactor;
-            v( pid, 0 ) =
-                vr * Kokkos::cos( Kokkos::atan2( x( pid, 1 ), x( pid, 0 ) ) );
-            v( pid, 1 ) =
-                vr * Kokkos::sin( Kokkos::atan2( x( pid, 1 ), x( pid, 0 ) ) );
-            v( pid, 2 ) = vzmax * zfactor;
-        };
-        particles.updateParticles( exec_space{}, init_functor );
-
-        CabanaPD::Solver solver( inputs, particles, force_model );
-        solver.init();
-        solver.run();
-    }
+    // ====================================================
+    //                      Outputs
+    // ====================================================
+    // Output x-displacement along the x-axis
+    CabanaPD::createDisplacementProfile( "displacement_profile.txt",
+                                         solver.particles, 0 );
 }
 
 // Initialize MPI+Kokkos.
@@ -181,7 +123,7 @@ int main( int argc, char* argv[] )
     MPI_Init( &argc, &argv );
     Kokkos::initialize( argc, argv );
 
-    fragmentingCylinderExample( argv[1] );
+    elasticWaveExample( argv[1] );
 
     Kokkos::finalize();
     MPI_Finalize();

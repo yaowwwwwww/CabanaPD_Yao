@@ -57,26 +57,45 @@ struct NormalRepulsionModel : public ContactModel
 
     double c;
     double K;
+    
+     
+    double r0;      // lj potential width sigma 1.05dx
+    double beta;    //   β   
 
     NormalRepulsionModel() {}
-    NormalRepulsionModel( const double _delta, const double radius,
-                          const double radius_extend, const double _K )
-        : ContactModel( radius, radius_extend )
+    NormalRepulsionModel( const double _delta, 
+                          const double _radius,
+                          const double radius_extend, 
+                          const double _K,
+                          const double _r0,
+                          const double _beta  )
+        : ContactModel(_radius, radius_extend )
         , delta( _delta )
         , K( _K )
+        , r0( _r0 )
+        , beta( _beta )
     {
         K = _K;
         // This could inherit from PMB (same c)
-        c = 18.0 * K / ( pi * delta * delta * delta * delta );
+        c = 18.0 * K / ( 3.1415926  * delta * delta * delta *60);
+
     }
 
     KOKKOS_INLINE_FUNCTION
     auto forceCoeff( const double r, const double vol ) const
     {
+        if ( r <= 1e-14 ) return 0.0;
+         if ( r > radius ) return 0.0;
         // Contact "stretch"
-        const double sc = ( r - radius ) / delta;
+        //const double sc = ( r - radius ) / delta;
+        double alpha = c * r0 * r0 * vol * vol / 72 / pow(beta, 7.0/3.0);
+        double term13 = pow( r0 / r, 13 );
+        double term7  = pow( r0 / r, 7 );
+
+        double Fc = ( (12.0 * alpha)/r0   ) * ( term13 - beta * term7 );
+        
         // Normal repulsion uses a 15 factor compared to the PMB force
-        return 15.0 * c * sc * vol;
+        return Fc/vol;
     }
 };
 

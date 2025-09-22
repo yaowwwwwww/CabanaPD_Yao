@@ -121,11 +121,14 @@ class Force<MemorySpace, ModelType, NormalRepulsionModel, NoFracture>
 
     template <class ForceType, class PosType, class ParticleType,
               class ParallelType>
+    
+              
     void computeForceFull( ForceType& fc, const PosType& x, const PosType& u,
                            const ParticleType& particles,
                            ParallelType& neigh_op_tag )
     {
         auto model = _model;
+        auto itype = particles.sliceType(); // 先取粒子类型数组
         const auto vol = particles.sliceVolume();
         const auto y = particles.sliceCurrentPosition();
         const int n_frozen = particles.frozenOffset();
@@ -143,12 +146,14 @@ class Force<MemorySpace, ModelType, NormalRepulsionModel, NoFracture>
             double rx, ry, rz;
             getDistance( x, u, i, j, xi, r, s, rx, ry, rz );
 
-            if ( r < model.radius )
+            if ( r < model.radius && itype(i) != itype(j) )
             {
+            
                 const double coeff = model.forceCoeff( r, vol( j ) );
                 fcx_i = coeff * rx / r;
                 fcy_i = coeff * ry / r;
                 fcz_i = coeff * rz / r;
+
             }
             fc( i, 0 ) += fcx_i;
             fc( i, 1 ) += fcy_i;
