@@ -61,23 +61,25 @@ struct NormalRepulsionModel : public ContactModel
      
     double r0;      // lj potential width sigma 1.05dx
     double beta;    //   β   
-
+    double alpha1;    //     α   
     NormalRepulsionModel() {}
     NormalRepulsionModel( const double _delta, 
                           const double _radius,
                           const double radius_extend, 
                           const double _K,
                           const double _r0,
-                          const double _beta  )
+                          const double _beta,
+                          const double _alpha  )
         : ContactModel(_radius, radius_extend )
         , delta( _delta )
         , K( _K )
         , r0( _r0 )
         , beta( _beta )
+        , alpha1( _alpha )
     {
         K = _K;
         // This could inherit from PMB (same c)
-        c = 18.0 * K / ( 3.1415926  * delta * delta * delta *60);
+        c = 18.0 * K / ( 3.1415926  * delta * delta * delta * alpha1 );
 
     }
 

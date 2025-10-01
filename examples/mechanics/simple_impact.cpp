@@ -44,6 +44,7 @@ void coldspray( const std::string filename )
     double nu = 0.25; // Use bond-based model
 
     double K = E / ( 3 * ( 1 - 2 * nu ) );
+    double G = inputs["shear_modulus"];
     double G0 = inputs["fracture_energy"];
     double sigma_y = inputs["yield_stress"];
 
@@ -69,11 +70,16 @@ void coldspray( const std::string filename )
     // ====================================================
     //                    Force model
     // ====================================================
-    using model_type = CabanaPD::PMB;
-    using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
-    CabanaPD::ForceModel force_model( model_type{}, mechanics_type{},
-                                      memory_space{}, delta, K, G0, sigma_y );
+    // using model_type = CabanaPD::PMB;
+    // using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
+    // CabanaPD::ForceModel force_model( model_type{}, mechanics_type{},
+    //                                   memory_space{}, delta, K, G0, sigma_y );
+    
+    // using model_type = CabanaPD::LPS;
+    // CabanaPD::ForceModel force_model( model_type{}, delta, K, G, G0 );   
 
+    using model_type = CabanaPD::PMB;
+    CabanaPD::ForceModel force_model( model_type{}, delta, K, G0 );
     // ====================================================
     //    Custom particle generation and initialization
     // ====================================================
@@ -108,7 +114,9 @@ void coldspray( const std::string filename )
     // ====================================================
     if ( inputs["use_contact"] )
     {
+        std::cout << "contact activated"<< std::endl;
         using contact_type = CabanaPD::NormalRepulsionModel;
+
         CabanaPD::Particles particles(
             memory_space{}, contact_type{}, low_corner, high_corner, num_cells,
             halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
@@ -146,24 +154,24 @@ void coldspray( const std::string filename )
        
         double r0=1.05*dx[0]; // lj potential width sigma 1.05dx,
         double beta = inputs["LJbeta"]; 
+        double apha = inputs["LJalpha"]; 
 
          // NOTE: dx/2 is when particles first touch.
         r_c *= r0;
         r_extend *= dx[0];
         //NonRepulsiveLJModel
-        contact_type contact_model(delta, r_c, r_extend, K, r0, beta);
+        contact_type contact_model(delta, r_c, r_extend, K, r0, beta, apha);
   
         //HertzianModel contact_model
         //contact_type contact_model( r_c, r_extend, nu, E, e );
- 
         //JKRHertzianModel contact_model
         //contact_type contact_model( r_c, r_extend, nu, E, e, gamma );
 
         CabanaPD::Solver solver( inputs, particles, force_model,
                                  contact_model );
 
-        double boundary_layer_thickness = 0.003; 
-        double bottom_z_thickness = 0.003; 
+        double boundary_layer_thickness = 3*dx[0]; 
+        double bottom_z_thickness = 3*dx[0]; 
 
         double z_bc = low_corner[2]; 
         CabanaPD::Region<CabanaPD::RectangularPrism> bottom_region(
@@ -223,6 +231,7 @@ void coldspray( const std::string filename )
     // ====================================================
     else
     {
+        std::cout << "no contact"<< std::endl;
         CabanaPD::Particles particles(
             memory_space{}, model_type{}, low_corner, high_corner, num_cells,
             halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
