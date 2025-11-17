@@ -61,7 +61,13 @@ struct NormalRepulsionModel : public ContactModel
      
     double r0;      // lj potential width sigma 1.05dx
     double beta;    //   β   
-    double alpha1;    //     α   
+    double alpha1;    //     α  
+    
+        // parameters for CZM cohesive law
+    double c_czm;   // cohesive scaling
+    double sy;      // yield stretch
+    double m_czm;   // exponential decay rate
+
     NormalRepulsionModel() {}
     NormalRepulsionModel( const double _delta, 
                           const double _radius,
@@ -69,13 +75,19 @@ struct NormalRepulsionModel : public ContactModel
                           const double _K,
                           const double _r0,
                           const double _beta,
-                          const double _alpha  )
+                          const double _alpha,
+                          const double _c_czm,
+                          const double _sy,
+                          const double _m_czm )
         : ContactModel(_radius, radius_extend )
         , delta( _delta )
         , K( _K )
         , r0( _r0 )
         , beta( _beta )
         , alpha1( _alpha )
+        , c_czm( _c_czm )
+        , sy( _sy )
+        , m_czm( _m_czm )
     {
         K = _K;
         // This could inherit from PMB (same c)
@@ -96,8 +108,20 @@ struct NormalRepulsionModel : public ContactModel
 
         double Fc = ( (12.0 * alpha)/r0   ) * ( term13 - beta * term7 );
         
+        //  CZM attraction (tensile)
+        double s = (r - 2.0e-6) / 2.0e-6;
+        double F_czm = 0.0; 
+
+        if ( s < 0.0 && s >= -sy )
+            F_czm = c_czm * (-s); // linear elastic
+        else if ( s < -sy )
+            F_czm = c_czm * sy * exp( -m_czm * ( -s - sy ) ); // exponential softening
+
+        // combine: repulsion (compressive) + CZM attraction (tensile)
+        double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
+
         // Normal repulsion uses a 15 factor compared to the PMB force
-        return Fc/vol;
+        return Fc_total/vol;
     }
 };
 

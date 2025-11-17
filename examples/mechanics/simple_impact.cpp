@@ -52,7 +52,7 @@ void coldspray( const std::string filename )
     double e = inputs["coefficient_of_restitution"];
     double gamma = inputs["surface_energy"];
 
-    double sc = inputs["critical_stretch"];
+ 
     double delta = inputs["horizon"];
     delta += 1e-10;
 
@@ -70,16 +70,16 @@ void coldspray( const std::string filename )
     // ====================================================
     //                    Force model
     // ====================================================
-    // using model_type = CabanaPD::PMB;
-    // using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
-    // CabanaPD::ForceModel force_model( model_type{}, mechanics_type{},
-    //                                   memory_space{}, delta, K, G0, sigma_y );
+    using model_type = CabanaPD::PMB;
+    using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
+    CabanaPD::ForceModel force_model( model_type{}, mechanics_type{},
+                                      memory_space{}, delta, K, G0, sigma_y );
     
     // using model_type = CabanaPD::LPS;
     // CabanaPD::ForceModel force_model( model_type{}, delta, K, G, G0 );   
 
-    using model_type = CabanaPD::PMB;
-    CabanaPD::ForceModel force_model( model_type{}, delta, K, G0 );
+    // using model_type = CabanaPD::PMB;
+    // CabanaPD::ForceModel force_model( model_type{}, delta, K, G0 );
     // ====================================================
     //    Custom particle generation and initialization
     // ====================================================
@@ -127,7 +127,7 @@ void coldspray( const std::string filename )
         auto f = particles.sliceForce();
         auto dx = particles.dx ;
         auto itype = particles.sliceType(); // particle type: ball or plate    
-
+        auto nofail= particles.sliceNoFail();   //  make  ball particles not fail
 
         auto init_functor = KOKKOS_LAMBDA( const int pid )
         {
@@ -145,23 +145,38 @@ void coldspray( const std::string filename )
                 v(pid, 2) = 0.0;
                 itype(pid) = 0; // plate
             }
+            nofail(pid) = (itype(pid) != 0); // make ball particles not fail
         };
         particles.updateParticles( exec_space{}, init_functor );
 
         // Use contact radius and extension relative to particle spacing.
         double r_c = inputs["contact_horizon_factor"];
         double r_extend = inputs["contact_horizon_extend_factor"];
-       
-        double r0=1.05*dx[0]; // lj potential width sigma 1.05dx,
+        double LJ_r0 = inputs["LJr0"];
+        double r0 = LJ_r0 * dx[0]; // lj potential width sigma 1.05dx,
         double beta = inputs["LJbeta"]; 
-        double apha = inputs["LJalpha"]; 
-
+        double alpha = inputs["LJalpha"]; 
+      std::cout << "beta: "
+                << beta << std::endl;
+      std::cout << "alpha: "
+                << alpha << std::endl;
          // NOTE: dx/2 is when particles first touch.
         r_c *= r0;
         r_extend *= dx[0];
+ 
+        double c_czm=inputs["CZM_cohesive_scaling"];  // CZM contact parameters,
+        double sy = inputs["CZM_yield_stretch"]; 
+        double m_czm = inputs["CZM_degradation_rate"]; 
+
+        std::cout << "c_czm: "
+                << c_czm << std::endl;
+        std::cout << "sy: "
+                << sy << std::endl;
+        std::cout << "m_czm: "
+                << m_czm << std::endl;
         //NonRepulsiveLJModel
-        contact_type contact_model(delta, r_c, r_extend, K, r0, beta, apha);
-  
+        contact_type contact_model(delta, r_c, r_extend, K, r0, beta, alpha,c_czm,sy,m_czm);
+
         //HertzianModel contact_model
         //contact_type contact_model( r_c, r_extend, nu, E, e );
         //JKRHertzianModel contact_model
@@ -170,8 +185,8 @@ void coldspray( const std::string filename )
         CabanaPD::Solver solver( inputs, particles, force_model,
                                  contact_model );
 
-        double boundary_layer_thickness = 3*dx[0]; 
-        double bottom_z_thickness = 3*dx[0]; 
+        double boundary_layer_thickness = 4*dx[0]; 
+        double bottom_z_thickness = 4*dx[0]; 
 
         double z_bc = low_corner[2]; 
         CabanaPD::Region<CabanaPD::RectangularPrism> bottom_region(
@@ -200,15 +215,17 @@ void coldspray( const std::string filename )
             low_corner[2], high_corner[2]
         );
 
-        auto v_slice = particles.sliceVelocity(); 
+     
+        auto x0 = particles.sliceReferencePosition();
+        auto v_slice = particles.sliceVelocity();
+        auto f_slice = particles.sliceForce();
 
-        auto fix_velocity_to_zero_op = KOKKOS_LAMBDA( const int pid, const double /*time*/ )
-        {
- 
-                v_slice( pid, 0 ) = 0.0; // fixed X direction velocity (by fixing velocity)
-                v_slice( pid, 1 ) = 0.0; // fixed Y direction velocity (by fixing velocity)
-                v_slice( pid, 2 ) = 0.0; // fixed Z direction velocity (by fixing velocity)
-   
+        auto fix_velocity_to_zero_op = KOKKOS_LAMBDA(const int pid, const double /*time*/) {
+            v_slice(pid,0)=v_slice(pid,1)=v_slice(pid,2)=0.0;
+            f_slice(pid,0)=f_slice(pid,1)=f_slice(pid,2)=0.0;
+            x(pid,0)=x0(pid,0);
+            x(pid,1)=x0(pid,1);
+            x(pid,2)=x0(pid,2);
         };
 
       
