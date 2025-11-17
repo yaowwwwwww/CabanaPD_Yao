@@ -21,7 +21,7 @@
 // Simulate cold spray.
 void coldspray( const std::string filename )
 {
-      std::cout << "Running cold spray example with input file: "
+      std::cout << "Running bi-material cold spray example with input file: "
                 << filename << std::endl;
 
       // ====================================================
@@ -39,23 +39,30 @@ void coldspray( const std::string filename )
     // ====================================================
     //                Material parameters
     // ====================================================
-    double rho0 = inputs["density"];
-    double E = inputs["elastic_modulus"];
-    double nu = 0.25; // Use bond-based model
+// --- Al particle ---
+    double rho_Al     = inputs["density"][0];
+    double E_Al       = inputs["elastic_modulus"][0];
+    double nu_Al      = inputs["Poisson's_ratio"][0];
+    double K_Al       = E_Al / (3.0 * (1.0 - 2.0 * nu_Al));
+    double G_Al       = E_Al / (2.0 * (1.0 + nu_Al));
+    double G0_Al      = inputs["fracture_energy"][0];
+    double sigma_y_Al = inputs["yield_stress"][0];
 
-    double K = E / ( 3 * ( 1 - 2 * nu ) );
-    double G = inputs["shear_modulus"];
-    double G0 = inputs["fracture_energy"];
-    double sigma_y = inputs["yield_stress"];
-
+    // --- Cu substrate ---
+    double rho_Cu     = inputs["density"][1];
+    double E_Cu       = inputs["elastic_modulus"][1];
+    double nu_Cu      = inputs["Poisson's_ratio"][1];
+    double K_Cu       = E_Cu / (3.0 * (1.0 - 2.0 * nu_Cu));
+    double G_Cu       = E_Cu / (2.0 * (1.0 + nu_Cu));
+    double K= (K_Cu+K_Al)/2;
+    double G0_Cu      = inputs["fracture_energy"][1];
+    double sigma_y_Cu = inputs["yield_stress"][1];
 
     double e = inputs["coefficient_of_restitution"];
     double gamma = inputs["surface_energy"];
-
- 
     double delta = inputs["horizon"];
-    delta += 1e-10;
 
+    delta += 1e-10;
    
     // ====================================================
     //                  Discretization
@@ -72,8 +79,12 @@ void coldspray( const std::string filename )
     // ====================================================
     using model_type = CabanaPD::PMB;
     using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
-    CabanaPD::ForceModel force_model( model_type{}, mechanics_type{},
-                                      memory_space{}, delta, K, G0, sigma_y );
+
+    CabanaPD::ForceModel force_model_Al( model_type{}, mechanics_type{},
+                                      memory_space{}, delta,  K_Al, G0_Al, sigma_y_Al);
+
+    CabanaPD::ForceModel force_model_Cu(model_type{}, mechanics_type{},
+                                     memory_space{}, delta, K_Cu, G0_Cu, sigma_y_Cu);
     
     // using model_type = CabanaPD::LPS;
     // CabanaPD::ForceModel force_model( model_type{}, delta, K, G, G0 );   
@@ -126,12 +137,12 @@ void coldspray( const std::string filename )
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
         auto dx = particles.dx ;
-        auto itype = particles.sliceType(); // particle type: ball or plate    
+        auto itype = particles.sliceType(); // particle type: ball or plate    // material type:1=Al_ball, 0=Cu_substrate
         auto nofail= particles.sliceNoFail();   //  make  ball particles not fail
 
         auto init_functor = KOKKOS_LAMBDA( const int pid )
         {
-            rho(pid) = rho0;
+             
             if ((x(pid, 2) - ball_center[2]) * (x(pid, 2) - ball_center[2]) +
                     (x(pid, 0) - ball_center[0]) * (x(pid, 0) - ball_center[0]) +
                     (x(pid, 1) - ball_center[1]) * (x(pid, 1) - ball_center[1]) <=
@@ -139,11 +150,13 @@ void coldspray( const std::string filename )
             {
                 v(pid, 2) = -vz_ball; // impact velocity downwards
                 itype(pid) = 1; // ball
+                rho(pid) = rho_Al;
             }
             else
             {
                 v(pid, 2) = 0.0;
                 itype(pid) = 0; // plate
+                rho(pid) = rho_Cu;
             }
             nofail(pid) = (itype(pid) != 0); // make ball particles not fail
         };
@@ -168,12 +181,12 @@ void coldspray( const std::string filename )
         double sy = inputs["CZM_yield_stretch"]; 
         double m_czm = inputs["CZM_degradation_rate"]; 
 
-        std::cout << "c_czm: "
-                << c_czm << std::endl;
-        std::cout << "sy: "
-                << sy << std::endl;
-        std::cout << "m_czm: "
-                << m_czm << std::endl;
+        // std::cout << "c_czm: "
+        //         << c_czm << std::endl;
+        // std::cout << "sy: "
+        //         << sy << std::endl;
+        // std::cout << "m_czm: "
+        //         << m_czm << std::endl;
         //NonRepulsiveLJModel
         contact_type contact_model(delta, r_c, r_extend, K, r0, beta, alpha,c_czm,sy,m_czm);
 
@@ -181,8 +194,13 @@ void coldspray( const std::string filename )
         //contact_type contact_model( r_c, r_extend, nu, E, e );
         //JKRHertzianModel contact_model
         //contact_type contact_model( r_c, r_extend, nu, E, e, gamma );
+    //  Multi-material force model
+    // ====================================================
+        auto models = CabanaPD::createMultiForceModel(
+        particles, CabanaPD::AverageTag{}, force_model_Al, force_model_Cu);
 
-        CabanaPD::Solver solver( inputs, particles, force_model,
+        
+        CabanaPD::Solver solver( inputs, particles, models,
                                  contact_model );
 
         double boundary_layer_thickness = 4*dx[0]; 
@@ -261,22 +279,25 @@ void coldspray( const std::string filename )
 
         auto init_functor = KOKKOS_LAMBDA( const int pid )
         {
-            rho(pid) = rho0;
+             
             if ((x(pid, 2) - ball_center[2]) * (x(pid, 2) - ball_center[2]) +
                     (x(pid, 0) - ball_center[0]) * (x(pid, 0) - ball_center[0]) +
                     (x(pid, 1) - ball_center[1]) * (x(pid, 1) - ball_center[1]) <=
                 ball_radius * ball_radius)
             {
                 v(pid, 2) = -vz_ball; // impact velocity downwards
+                    
+                rho(pid) = rho_Al;
             }
             else
             {
                 v(pid, 2) = 0.0; 
+                 rho(pid) = rho_Cu;
             }
         };
         particles.updateParticles( exec_space{}, init_functor );
 
-        CabanaPD::Solver solver( inputs, particles, force_model );
+        CabanaPD::Solver solver( inputs, particles, force_model_Cu );
         solver.init();
         solver.run();
     }
