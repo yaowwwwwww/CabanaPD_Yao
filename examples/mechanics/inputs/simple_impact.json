@@ -1,40 +1,138 @@
 {
-  "low_corner":   { "value": [ -0.00003, -0.00003, -0.00003 ], "unit": "m" },
-  "high_corner":  { "value": [  0.00003,  0.00003,  0.00003 ], "unit": "m" },
-  "num_cells":    { "value": [ 60, 60, 60 ] },
-
-  "ball_center":  { "value": [ 0.0, 0.0, 0.000007 ] },
-  "ball_radius":  { "value": 0.000006, "unit": "m" },
-  "plate_z_min":  { "value": -0.00003, "unit": "m" },
-  "plate_z_max":  { "value":  0.0,  "unit": "m" },
-
-  "ball_initial_velocity": { "value": 600.0, "unit": "m/s" },
-  "horizon":               { "value": 0.0000015, "unit": "m" },
-
-  "density":         { "value": [ 3940, 8960 ], "unit": "kg/m^3" },
-  "elastic_modulus": { "value": [ 370e9, 120e9 ], "unit": "Pa" },
-  "Poisson's_ratio": { "value": [ 0.22, 0.34 ] },
-  "yield_stress":    { "value": [ 5.6e9, 1e9 ], "unit": "Pa" },
-  "fracture_energy": { "value": [ 10000.0, 100000.0 ], "unit": "J/m^2" },
-
-  "surface_energy":            { "value": 0.01, "unit": "J/m^2" },
-  "coefficient_of_restitution": { "value": 0.7 },
- 
-  "LJbeta": {"value": 0.5 },
-  "LJalpha": {"value": 6E-13 },
-  "LJr0": { "value": 0.8},
-  "CZM_cohesive_scaling": {"value": 0,"unit": "Pa"},
-  "CZM_yield_stretch": { "value": 0.05  },
-  "CZM_degradation_rate": { "value": 1.0  },
-
-  "use_contact": { "value": true },
-  "contact_horizon_factor":       { "value": 1.5 },
-  "contact_horizon_extend_factor": { "value": 0.05 },
-
-  "final_time":             { "value": 8e-8, "unit": "s" },
-  "timestep":               { "value": 1e-11, "unit": "s" },
-  "timestep_safety_factor": { "value": 0.70 },
-
-  "output_frequency": { "value": 50 },
-  "output_reference": { "value": false }
+  "low_corner": {
+    "value": [
+      -0.00003,
+      -0.00003,
+      -0.00003
+    ],
+    "unit": "m"
+  },
+  "high_corner": {
+    "value": [
+      0.00003,
+      0.00003,
+      0.00003
+    ],
+    "unit": "m"
+  },
+  "num_cells": {
+    "value": [
+      60,
+      60,
+      60
+    ]
+  },
+  "ball_center": {
+    "value": [
+      0.0,
+      0.0,
+      0.000007
+    ]
+  },
+  "ball_radius": {
+    "value": 0.000006,
+    "unit": "m"
+  },
+  "plate_z_min": {
+    "value": -0.00003,
+    "unit": "m"
+  },
+  "plate_z_max": {
+    "value": 0.0,
+    "unit": "m"
+  },
+  "ball_initial_velocity": {
+    "value": 100,
+    "unit": "m/s"
+  },
+  "horizon": {
+    "value": 0.0000015,
+    "unit": "m"
+  },
+  "density": {
+    "value": [
+      8960,
+      3940
+    ],
+    "unit": "kg/m^3"
+  },
+  "elastic_modulus": {
+    "value": [
+      1.20E+11,
+      3.90E+11
+    ],
+    "unit": "Pa"
+  },
+  "Poisson's_ratio": {
+    "value": [
+      0.34,
+      0.22
+    ]
+  },
+  "yield_stress": {
+    "value": [
+      5E+8,
+      5.6E+9
+    ],
+    "unit": "Pa"
+  },
+  "fracture_energy": {
+    "value": [
+      100000.0,
+      100000.0
+    ],
+    "unit": "J/m^2"
+  },
+  "surface_energy": {
+    "value": 0.01,
+    "unit": "J/m^2"
+  },
+  "coefficient_of_restitution": {
+    "value": 0.7
+  },
+  "LJbeta": {
+    "value": 0.5
+  },
+  "LJalpha": {
+    "value": 1E-12
+  },
+  "LJr0": {
+    "value": 0.8
+  },
+  "CZM_cohesive_scaling": {
+    "value": 0,
+    "unit": "Pa"
+  },
+  "CZM_yield_stretch": {
+    "value": 0.05
+  },
+  "CZM_degradation_rate": {
+    "value": 1.0
+  },
+  "use_contact": {
+    "value": true
+  },
+  "contact_horizon_factor": {
+    "value": 1.5
+  },
+  "contact_horizon_extend_factor": {
+    "value": 0.05
+  },
+  "final_time": {
+    "value": 8E-8,
+    "unit": "s"
+  },
+  "timestep": {
+    "value": 1E-11,
+    "unit": "s"
+  },
+  "timestep_safety_factor": {
+    "value": 0.70
+  },
+  "output_frequency": {
+    "value": 50
+  },
+  "output_reference": {
+    "value": false
+  }
 }
