@@ -42,7 +42,7 @@
     "unit": "m"
   },
   "ball_initial_velocity": {
-    "value": 100,
+    "value": 800,
     "unit": "m/s"
   },
   "horizon": {
@@ -52,27 +52,27 @@
   "density": {
     "value": [
       8960,
-      3940
+      8960
     ],
     "unit": "kg/m^3"
   },
   "elastic_modulus": {
     "value": [
       1.20E+11,
-      3.90E+11
+      1.20E+11
     ],
     "unit": "Pa"
   },
   "Poisson's_ratio": {
     "value": [
       0.34,
-      0.22
+      0.34
     ]
   },
   "yield_stress": {
     "value": [
-      5E+8,
-      5.6E+9
+      4E+9,
+      2.5E+9
     ],
     "unit": "Pa"
   },

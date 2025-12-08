@@ -149,16 +149,16 @@ void coldspray( const std::string filename )
                 ball_radius * ball_radius)
             {
                 v(pid, 2) = -vz_ball; // impact velocity downwards
-                itype(pid) = 1; // ball
+                itype(pid) = 0; // ball
                 rho(pid) = rho_Al;
             }
             else
             {
                 v(pid, 2) = 0.0;
-                itype(pid) = 0; // plate
+                itype(pid) = 1; // plate
                 rho(pid) = rho_Cu;
             }
-            nofail(pid) = (itype(pid) != 0); // make ball particles not fail
+            nofail(pid) = (itype(pid) == 0); // make ball particles not fail
         };
         particles.updateParticles( exec_space{}, init_functor );
 
