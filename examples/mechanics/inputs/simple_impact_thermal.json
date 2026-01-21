@@ -92,8 +92,8 @@
   },
   "thermal_conductivity": {
     "value": [
-      387,
-      387
+      386,
+      386
     ],
     "unit": "W/(m.K)"
   },
