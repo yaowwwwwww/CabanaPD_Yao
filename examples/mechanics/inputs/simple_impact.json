@@ -26,11 +26,11 @@
     "value": [
       0.0,
       0.0,
-      0.000007
+      0.000012
     ]
   },
   "ball_radius": {
-    "value": 0.000006,
+    "value": 0.000011,
     "unit": "m"
   },
   "plate_z_min": {
@@ -71,7 +71,7 @@
   },
   "yield_stress": {
     "value": [
-      4E+9,
+      2.5E+9,
       2.5E+9
     ],
     "unit": "Pa"
