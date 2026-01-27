@@ -18,6 +18,7 @@
 #include <Kokkos_Core.hpp>
 
 #include <CabanaPD.hpp>
+#include <force_models/CabanaPD_PMB_JohnsonCook.hpp>
 
 // Simulate cold spray with thermomechanics.
 void coldspray_thermal( const std::string filename )
@@ -35,10 +36,6 @@ void coldspray_thermal( const std::string filename )
     //                   Read inputs
     // ====================================================
     CabanaPD::Inputs inputs( filename );
-
-    if ( !inputs.contains( "thermal_subcycle_steps" ) )
-        throw std::runtime_error(
-            "Thermal example requires thermal_subcycle_steps in input." );
 
     // ====================================================
     //                Material parameters
@@ -68,34 +65,14 @@ void coldspray_thermal( const std::string filename )
 
     delta += 1e-10;
 
-    auto read_material_value =
-        [&]( const std::string& label, const int idx,
-             const double fallback ) -> double
-    {
-        if ( !inputs.contains( label ) )
-            return fallback;
-        auto val = inputs[label];
-        if ( val.is_array() )
-        {
-            if ( idx < static_cast<int>( val.size() ) )
-                return val[idx].get<double>();
-            return val[0].get<double>();
-        }
-        return val.get<double>();
-    };
+    // JC hardening parameters (A uses existing yield stress).
+    double A_Al = sigma_y_Al;
+    double B_Al = inputs["jc_B"][0];
+    double n_Al = inputs["jc_n"][0];
 
-    // Thermal parameters (allow scalar or per-material arrays).
-    double alpha_Al = read_material_value( "thermal_expansion_coeff", 0, 0.0 );
-    double alpha_Cu = read_material_value( "thermal_expansion_coeff", 1,
-                                           alpha_Al );
-    double kappa_Al = read_material_value( "thermal_conductivity", 0, 0.0 );
-    double kappa_Cu = read_material_value( "thermal_conductivity", 1,
-                                           kappa_Al );
-    double cp_Al = read_material_value( "specific_heat_capacity", 0, 1.0 );
-    double cp_Cu = read_material_value( "specific_heat_capacity", 1, cp_Al );
-    double temp0_Al = read_material_value( "reference_temperature", 0, 0.0 );
-    double temp0_Cu =
-        read_material_value( "reference_temperature", 1, temp0_Al );
+    double A_Cu = sigma_y_Cu;
+    double B_Cu = inputs["jc_B"][1];
+    double n_Cu = inputs["jc_n"][1];
    
     // ====================================================
     //                  Discretization
@@ -111,7 +88,7 @@ void coldspray_thermal( const std::string filename )
     //                    Force model
     // ====================================================
     using model_type = CabanaPD::PMB;
-    using mechanics_type = CabanaPD::ElasticPerfectlyPlastic;
+    using mechanics_type = CabanaPD::JohnsonCook;
     
     // using model_type = CabanaPD::LPS;
     // CabanaPD::ForceModel force_model( model_type{}, delta, K, G, G0 );   
@@ -156,15 +133,13 @@ void coldspray_thermal( const std::string filename )
         using contact_type = CabanaPD::NormalRepulsionModel;
 
         CabanaPD::Particles particles(
-            memory_space{}, contact_type{}, CabanaPD::DynamicTemperature{},
-            low_corner, high_corner, num_cells, halo_width, Cabana::InitRandom{},
-            init_op, exec_space{} );
+            memory_space{}, contact_type{}, low_corner, high_corner, num_cells,
+            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
 
         auto rho = particles.sliceDensity();
         auto x = particles.sliceReferencePosition();
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
-        auto temp = particles.sliceTemperature();
         auto dx = particles.dx ;
         auto itype = particles.sliceType(); // particle type: ball or plate    // material type:1=Al_ball, 0=Cu_substrate
         auto nofail= particles.sliceNoFail();   //  make  ball particles not fail
@@ -180,28 +155,41 @@ void coldspray_thermal( const std::string filename )
                 v(pid, 2) = -vz_ball; // impact velocity downwards
                 itype(pid) = 0; // ball
                 rho(pid) = rho_Al;
-                temp(pid) = temp0_Al;
             }
             else
             {
                 v(pid, 2) = 0.0;
                 itype(pid) = 1; // plate
                 rho(pid) = rho_Cu;
-                temp(pid) = temp0_Cu;
             }
             nofail(pid) = (itype(pid) == 0); // make ball particles not fail
         };
         particles.updateParticles( exec_space{}, init_functor );
 
+        int sample_pid = -1;
+        {
+            int min_pid = static_cast<int>( particles.localOffset() );
+            Kokkos::parallel_reduce(
+                "FindSampleProjectile",
+                Kokkos::RangePolicy<exec_space>( particles.frozenOffset(),
+                                                 particles.localOffset() ),
+                KOKKOS_LAMBDA( const int pid, int& lmin ) {
+                    if ( itype( pid ) == 0 && pid < lmin )
+                        lmin = pid;
+                },
+                Kokkos::Min<int>( min_pid ) );
+            Kokkos::fence();
+            if ( min_pid != static_cast<int>( particles.localOffset() ) )
+                sample_pid = min_pid;
+        }
+
         CabanaPD::ForceModel force_model_Al( model_type{}, mechanics_type{},
-                                             delta, K_Al, G0_Al, sigma_y_Al,
-                                             temp, kappa_Al, cp_Al, alpha_Al,
-                                             temp0_Al );
+                                             memory_space{}, delta, K_Al, G0_Al,
+                                             A_Al, B_Al, n_Al, sample_pid );
 
         CabanaPD::ForceModel force_model_Cu( model_type{}, mechanics_type{},
-                                             delta, K_Cu, G0_Cu, sigma_y_Cu,
-                                             temp, kappa_Cu, cp_Cu, alpha_Cu,
-                                             temp0_Cu );
+                                             memory_space{}, delta, K_Cu, G0_Cu,
+                                             A_Cu, B_Cu, n_Cu, -1 );
 
         // Use contact radius and extension relative to particle spacing.
         double r_c = inputs["contact_horizon_factor"];
@@ -309,17 +297,13 @@ void coldspray_thermal( const std::string filename )
     {
         std::cout << "no contact"<< std::endl;
         CabanaPD::Particles particles(
-            memory_space{}, model_type{}, CabanaPD::DynamicTemperature{},
-            low_corner, high_corner, num_cells, halo_width, Cabana::InitRandom{},
-            init_op, exec_space{} );
+            memory_space{}, model_type{}, low_corner, high_corner, num_cells,
+            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
 
         auto rho = particles.sliceDensity();
         auto x = particles.sliceReferencePosition();
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
-        auto temp = particles.sliceTemperature();
-
-
         auto init_functor = KOKKOS_LAMBDA( const int pid )
         {
              
@@ -331,21 +315,18 @@ void coldspray_thermal( const std::string filename )
                 v(pid, 2) = -vz_ball; // impact velocity downwards
                     
                 rho(pid) = rho_Al;
-                temp(pid) = temp0_Al;
             }
             else
             {
                 v(pid, 2) = 0.0; 
                  rho(pid) = rho_Cu;
-                 temp(pid) = temp0_Cu;
             }
         };
         particles.updateParticles( exec_space{}, init_functor );
 
         CabanaPD::ForceModel force_model_Cu( model_type{}, mechanics_type{},
-                                             delta, K_Cu, G0_Cu, sigma_y_Cu,
-                                             temp, kappa_Cu, cp_Cu, alpha_Cu,
-                                             temp0_Cu );
+                                             memory_space{}, delta, K_Cu, G0_Cu,
+                                             A_Cu, B_Cu, n_Cu );
 
         CabanaPD::Solver solver( inputs, particles, force_model_Cu );
         solver.init();

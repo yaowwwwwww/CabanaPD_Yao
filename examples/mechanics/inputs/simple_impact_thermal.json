@@ -42,7 +42,7 @@
     "unit": "m"
   },
   "ball_initial_velocity": {
-    "value": 800,
+    "value": 500,
     "unit": "m/s"
   },
   "horizon": {
@@ -71,10 +71,23 @@
   },
   "yield_stress": {
     "value": [
-      2.5E+9,
-      2.5E+9
+      80E+6,
+      80E+6
     ],
     "unit": "Pa"
+  },
+  "jc_B": {
+    "value": [
+      292E+6,
+      292E+6
+    ],
+    "unit": "Pa"
+  },
+  "jc_n": {
+    "value": [
+      0.31,
+      0.31
+    ]
   },
   "fracture_energy": {
     "value": [
