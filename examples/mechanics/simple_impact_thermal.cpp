@@ -69,10 +69,15 @@ void coldspray_thermal( const std::string filename )
     double A_Al = sigma_y_Al;
     double B_Al = inputs["jc_B"][0];
     double n_Al = inputs["jc_n"][0];
+    double C_Al = inputs["jc_C"][0];
+    double epsdot0_Al = inputs["jc_epsdot0"][0];
 
     double A_Cu = sigma_y_Cu;
     double B_Cu = inputs["jc_B"][1];
     double n_Cu = inputs["jc_n"][1];
+    double C_Cu = inputs["jc_C"][1];
+    double epsdot0_Cu = inputs["jc_epsdot0"][1];
+    double dt = inputs["timestep"];
    
     // ====================================================
     //                  Discretization
@@ -185,11 +190,13 @@ void coldspray_thermal( const std::string filename )
 
         CabanaPD::ForceModel force_model_Al( model_type{}, mechanics_type{},
                                              memory_space{}, delta, K_Al, G0_Al,
-                                             A_Al, B_Al, n_Al, sample_pid );
+                                             A_Al, B_Al, n_Al, C_Al,
+                                             epsdot0_Al, sample_pid, dt );
 
         CabanaPD::ForceModel force_model_Cu( model_type{}, mechanics_type{},
                                              memory_space{}, delta, K_Cu, G0_Cu,
-                                             A_Cu, B_Cu, n_Cu, -1 );
+                                             A_Cu, B_Cu, n_Cu, C_Cu,
+                                             epsdot0_Cu, -1, dt );
 
         // Use contact radius and extension relative to particle spacing.
         double r_c = inputs["contact_horizon_factor"];

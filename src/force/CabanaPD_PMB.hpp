@@ -61,6 +61,7 @@
 #define FORCE_PMB_H
 
 #include <cmath>
+#include <type_traits>
 
 #include <CabanaPD_Force.hpp>
 #include <CabanaPD_ForceModels.hpp>
@@ -70,6 +71,258 @@
 
 namespace CabanaPD
 {
+template <typename T, typename = void>
+struct has_point_plastic_strain : std::false_type
+{
+};
+
+template <typename T>
+struct has_point_plastic_strain<
+    T, std::void_t<decltype( std::declval<T>().plasticStretch() ),
+                   decltype( std::declval<T>().pointPlasticStrain() ),
+                   decltype( std::declval<T>().pointPlasticStrainPrev() )>>
+    : std::true_type
+{
+};
+
+template <typename T, typename = void>
+struct is_multi_force_model : std::false_type
+{
+};
+
+template <typename T>
+struct is_multi_force_model<
+    T, std::void_t<decltype( std::declval<T>().model1 ),
+                   decltype( std::declval<T>().model2 ),
+                   decltype( std::declval<T>().model12 ),
+                   decltype( std::declval<T>().type )>> : std::true_type
+{
+};
+
+template <class ExecSpace, class NeighborListType, class ModelType,
+          class VolumeSliceType>
+void updatePointPlasticStrain( ExecSpace exec_space,
+                               const NeighborListType& neigh_list,
+                               ModelType& model,
+                               const VolumeSliceType& vol,
+                               const int frozen_offset,
+                               const int local_offset )
+{
+    auto s_p = model.plasticStretch();
+    auto eps_p = model.pointPlasticStrain();
+    auto eps_p_prev = model.pointPlasticStrainPrev();
+
+    auto update_eps_p = KOKKOS_LAMBDA( const int i )
+    {
+        std::size_t num_neighbors =
+            Cabana::NeighborList<NeighborListType>::numNeighbor( neigh_list,
+                                                                 i );
+        double sum = 0.0;
+        double wsum = 0.0;
+        for ( std::size_t n = 0; n < num_neighbors; n++ )
+        {
+            std::size_t j =
+                Cabana::NeighborList<NeighborListType>::getNeighbor(
+                    neigh_list, i, n );
+            const double w = vol( j );
+            const double sp = s_p( i, n );
+            sum += w * sp * sp;
+            wsum += w;
+        }
+        const double eps = ( wsum > 0.0 ) ? Kokkos::sqrt( sum / wsum ) : 0.0;
+        eps_p_prev( i ) = eps_p( i );
+        eps_p( i ) = eps;
+    };
+
+    Kokkos::RangePolicy<ExecSpace> policy( frozen_offset, local_offset );
+    Kokkos::parallel_for( "CabanaPD::ForcePMB::updatePointPlasticStrain",
+                          policy, update_eps_p );
+    Kokkos::fence();
+}
+
+template <class ExecSpace, class NeighborListType, class ModelType,
+          class VolumeSliceType, class MuSliceType>
+void updatePointPlasticStrain( ExecSpace exec_space,
+                               const NeighborListType& neigh_list,
+                               ModelType& model,
+                               const VolumeSliceType& vol,
+                               const MuSliceType& mu,
+                               const int frozen_offset,
+                               const int local_offset )
+{
+    auto s_p = model.plasticStretch();
+    auto eps_p = model.pointPlasticStrain();
+    auto eps_p_prev = model.pointPlasticStrainPrev();
+
+    auto update_eps_p = KOKKOS_LAMBDA( const int i )
+    {
+        std::size_t num_neighbors =
+            Cabana::NeighborList<NeighborListType>::numNeighbor( neigh_list,
+                                                                 i );
+        double sum = 0.0;
+        double wsum = 0.0;
+        for ( std::size_t n = 0; n < num_neighbors; n++ )
+        {
+            std::size_t j =
+                Cabana::NeighborList<NeighborListType>::getNeighbor(
+                    neigh_list, i, n );
+            const double w = mu( i, n ) * vol( j );
+            const double sp = s_p( i, n );
+            sum += w * sp * sp;
+            wsum += w;
+        }
+        const double eps = ( wsum > 0.0 ) ? Kokkos::sqrt( sum / wsum ) : 0.0;
+        eps_p_prev( i ) = eps_p( i );
+        eps_p( i ) = eps;
+    };
+
+    Kokkos::RangePolicy<ExecSpace> policy( frozen_offset, local_offset );
+    Kokkos::parallel_for( "CabanaPD::ForcePMB::updatePointPlasticStrainDamage",
+                          policy, update_eps_p );
+    Kokkos::fence();
+}
+
+template <class ExecSpace, class NeighborListType, class ModelType,
+          class VolumeSliceType>
+void updatePointPlasticStrainMulti( ExecSpace exec_space,
+                                    const NeighborListType& neigh_list,
+                                    ModelType& model,
+                                    const VolumeSliceType& vol,
+                                    const int frozen_offset,
+                                    const int local_offset )
+{
+    auto type = model.type;
+
+    auto s_p1 = model.model1.plasticStretch();
+    auto eps_p1 = model.model1.pointPlasticStrain();
+    auto eps_p1_prev = model.model1.pointPlasticStrainPrev();
+
+    auto s_p2 = model.model2.plasticStretch();
+    auto eps_p2 = model.model2.pointPlasticStrain();
+    auto eps_p2_prev = model.model2.pointPlasticStrainPrev();
+
+    auto s_p12 = model.model12.plasticStretch();
+    auto eps_p12 = model.model12.pointPlasticStrain();
+    auto eps_p12_prev = model.model12.pointPlasticStrainPrev();
+
+    auto update_eps_p = KOKKOS_LAMBDA( const int i )
+    {
+        const int type_i = type( i );
+        std::size_t num_neighbors =
+            Cabana::NeighborList<NeighborListType>::numNeighbor( neigh_list,
+                                                                 i );
+        double sum = 0.0;
+        double wsum = 0.0;
+        for ( std::size_t n = 0; n < num_neighbors; n++ )
+        {
+            std::size_t j =
+                Cabana::NeighborList<NeighborListType>::getNeighbor(
+                    neigh_list, i, n );
+            const int type_j = type( j );
+            const int t = ( type_i == type_j ) ? type_i : 2;
+            const double w = vol( j );
+            double sp = 0.0;
+            if ( t == 0 )
+                sp = s_p1( i, n );
+            else if ( t == 1 )
+                sp = s_p2( i, n );
+            else
+                sp = s_p12( i, n );
+            sum += w * sp * sp;
+            wsum += w;
+        }
+        const double eps = ( wsum > 0.0 ) ? Kokkos::sqrt( sum / wsum ) : 0.0;
+        if ( type_i == 0 )
+        {
+            eps_p1_prev( i ) = eps_p1( i );
+            eps_p1( i ) = eps;
+        }
+        else
+        {
+            eps_p2_prev( i ) = eps_p2( i );
+            eps_p2( i ) = eps;
+        }
+        eps_p12_prev( i ) = eps_p12( i );
+        eps_p12( i ) = eps;
+    };
+
+    Kokkos::RangePolicy<ExecSpace> policy( frozen_offset, local_offset );
+    Kokkos::parallel_for( "CabanaPD::ForcePMB::updatePointPlasticStrainMulti",
+                          policy, update_eps_p );
+    Kokkos::fence();
+}
+
+template <class ExecSpace, class NeighborListType, class ModelType,
+          class VolumeSliceType, class MuSliceType>
+void updatePointPlasticStrainMulti( ExecSpace exec_space,
+                                    const NeighborListType& neigh_list,
+                                    ModelType& model,
+                                    const VolumeSliceType& vol,
+                                    const MuSliceType& mu,
+                                    const int frozen_offset,
+                                    const int local_offset )
+{
+    auto type = model.type;
+
+    auto s_p1 = model.model1.plasticStretch();
+    auto eps_p1 = model.model1.pointPlasticStrain();
+    auto eps_p1_prev = model.model1.pointPlasticStrainPrev();
+
+    auto s_p2 = model.model2.plasticStretch();
+    auto eps_p2 = model.model2.pointPlasticStrain();
+    auto eps_p2_prev = model.model2.pointPlasticStrainPrev();
+
+    auto s_p12 = model.model12.plasticStretch();
+    auto eps_p12 = model.model12.pointPlasticStrain();
+    auto eps_p12_prev = model.model12.pointPlasticStrainPrev();
+
+    auto update_eps_p = KOKKOS_LAMBDA( const int i )
+    {
+        const int type_i = type( i );
+        std::size_t num_neighbors =
+            Cabana::NeighborList<NeighborListType>::numNeighbor( neigh_list,
+                                                                 i );
+        double sum = 0.0;
+        double wsum = 0.0;
+        for ( std::size_t n = 0; n < num_neighbors; n++ )
+        {
+            std::size_t j =
+                Cabana::NeighborList<NeighborListType>::getNeighbor(
+                    neigh_list, i, n );
+            const int type_j = type( j );
+            const int t = ( type_i == type_j ) ? type_i : 2;
+            const double w = mu( i, n ) * vol( j );
+            double sp = 0.0;
+            if ( t == 0 )
+                sp = s_p1( i, n );
+            else if ( t == 1 )
+                sp = s_p2( i, n );
+            else
+                sp = s_p12( i, n );
+            sum += w * sp * sp;
+            wsum += w;
+        }
+        const double eps = ( wsum > 0.0 ) ? Kokkos::sqrt( sum / wsum ) : 0.0;
+        if ( type_i == 0 )
+        {
+            eps_p1_prev( i ) = eps_p1( i );
+            eps_p1( i ) = eps;
+        }
+        else
+        {
+            eps_p2_prev( i ) = eps_p2( i );
+            eps_p2( i ) = eps;
+        }
+        eps_p12_prev( i ) = eps_p12( i );
+        eps_p12( i ) = eps;
+    };
+
+    Kokkos::RangePolicy<ExecSpace> policy( frozen_offset, local_offset );
+    Kokkos::parallel_for(
+        "CabanaPD::ForcePMB::updatePointPlasticStrainMultiDamage", policy,
+        update_eps_p );
+    Kokkos::fence();
+}
 template <class MemorySpace, class ModelType>
 class Force<MemorySpace, ModelType, PMB, NoFracture>
     : public BaseForce<MemorySpace>
@@ -139,6 +392,19 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
             policy, force_full, _neigh_list, Cabana::FirstNeighborsTag(),
             neigh_op_tag, "CabanaPD::ForcePMB::computeFull" );
         Kokkos::fence();
+
+        if constexpr ( is_multi_force_model<ModelType>::value )
+        {
+            updatePointPlasticStrainMulti( exec_space{}, _neigh_list, _model,
+                                           vol, particles.frozenOffset(),
+                                           particles.localOffset() );
+        }
+        else if constexpr ( has_point_plastic_strain<ModelType>::value )
+        {
+            updatePointPlasticStrain( exec_space{}, _neigh_list, _model, vol,
+                                      particles.frozenOffset(),
+                                      particles.localOffset() );
+        }
         _timer.stop();
     }
 
@@ -339,6 +605,20 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
         Kokkos::parallel_for( "CabanaPD::ForcePMBDamage::computeFull", policy,
                               force_full );
         Kokkos::fence();
+
+        if constexpr ( is_multi_force_model<ModelType>::value )
+        {
+            updatePointPlasticStrainMulti( exec_space{}, _neigh_list, _model,
+                                           vol, mu,
+                                           particles.frozenOffset(),
+                                           particles.localOffset() );
+        }
+        else if constexpr ( has_point_plastic_strain<ModelType>::value )
+        {
+            updatePointPlasticStrain( exec_space{}, _neigh_list, _model, vol,
+                                      mu, particles.frozenOffset(),
+                                      particles.localOffset() );
+        }
         _timer.stop();
     }
 
