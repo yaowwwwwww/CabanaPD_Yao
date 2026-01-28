@@ -91,7 +91,7 @@ struct NormalRepulsionModel : public ContactModel
     {
         K = _K;
         // This could inherit from PMB (same c)
-        c = 18.0 * K / ( 3.1415926  * delta * delta * delta * alpha1 );
+        c = 18.0 * K / ( 3.1415926  * delta * delta * delta *alpha1);
 
     }
 
