@@ -109,6 +109,8 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
     using int_type = Cabana::MemberTypes<int>;
     // v, rho.
     using other_types = Cabana::MemberTypes<double[dim], double>;
+    // plastic_strain, plastic_strain_rate, yield_stress.
+    using plastic_types = Cabana::MemberTypes<double, double, double>;
 
     // FIXME: add vector length.
     // FIXME: enable variable aosoa.
@@ -118,6 +120,7 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
     using aosoa_nofail_type = Cabana::AoSoA<int_type, memory_space, 1>;
     using aosoa_material_type = Cabana::AoSoA<int_type, memory_space, 1>;
     using aosoa_other_type = Cabana::AoSoA<other_types, memory_space>;
+    using aosoa_plastic_type = Cabana::AoSoA<plastic_types, memory_space, 1>;
     // Using grid here for the particle init.
     using plist_x_type =
         Cabana::Grid::ParticleList<memory_space, 1,
@@ -394,6 +397,9 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
         auto u = sliceDisplacement();
         auto vol = sliceVolume();
         auto nofail = sliceNoFail();
+        auto eps_p = slicePlasticStrain();
+        auto eps_p_dot = slicePlasticStrainRate();
+        auto sigma_y = sliceYieldStress();
 
         // Initialize particles.
         auto create_functor =
@@ -417,6 +423,9 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
             }
             // Get the volume of the cell.
             vol( pid ) = pv;
+            eps_p( pid ) = 0.0;
+            eps_p_dot( pid ) = 0.0;
+            sigma_y( pid ) = 0.0;
 
             // FIXME: hardcoded.
             type( pid ) = 0;
@@ -460,6 +469,9 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
         auto rho = sliceDensity();
         auto u = sliceDisplacement();
         auto nofail = sliceNoFail();
+        auto eps_p = slicePlasticStrain();
+        auto eps_p_dot = slicePlasticStrainRate();
+        auto sigma_y = sliceYieldStress();
 
         static_assert(
             Cabana::is_accessible_from<
@@ -480,6 +492,9 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
                     v( pid, d ) = 0.0;
                     f( pid, d ) = 0.0;
                 }
+                eps_p( pid ) = 0.0;
+                eps_p_dot( pid ) = 0.0;
+                sigma_y( pid ) = 0.0;
                 type( pid ) = 0;
                 nofail( pid ) = 0;
                 rho( pid ) = 1.0;
@@ -643,6 +658,30 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
     {
         return Cabana::slice<0>( _aosoa_nofail, "no_fail_region" );
     }
+    auto slicePlasticStrain()
+    {
+        return Cabana::slice<0>( _aosoa_plastic, "plastic_strain" );
+    }
+    auto slicePlasticStrain() const
+    {
+        return Cabana::slice<0>( _aosoa_plastic, "plastic_strain" );
+    }
+    auto slicePlasticStrainRate()
+    {
+        return Cabana::slice<1>( _aosoa_plastic, "plastic_strain_rate" );
+    }
+    auto slicePlasticStrainRate() const
+    {
+        return Cabana::slice<1>( _aosoa_plastic, "plastic_strain_rate" );
+    }
+    auto sliceYieldStress()
+    {
+        return Cabana::slice<2>( _aosoa_plastic, "yield_stress" );
+    }
+    auto sliceYieldStress() const
+    {
+        return Cabana::slice<2>( _aosoa_plastic, "yield_stress" );
+    }
 
     auto getForce() { return _plist_f; }
     auto getReferencePosition() { return _plist_x; }
@@ -687,6 +726,7 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
         _aosoa_other.resize( localOffset() );
         _aosoa_nofail.resize( referenceOffset() );
         _aosoa_material.resize( referenceOffset() );
+        _aosoa_plastic.resize( referenceOffset() );
 
         if ( create_frozen )
             frozen_offset = _size;
@@ -703,6 +743,7 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
         _plist_f.aosoa().shrinkToFit();
         _aosoa_other.shrinkToFit();
         _aosoa_nofail.shrinkToFit();
+        _aosoa_plastic.shrinkToFit();
         _timer.stop();
     };
 
@@ -722,6 +763,8 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
         Cabana::remove( execution_space(), num_keep, keep, _aosoa_other,
                         numFrozen() );
         Cabana::remove( execution_space(), num_keep, keep, _aosoa_nofail,
+                        numFrozen() );
+        Cabana::remove( execution_space(), num_keep, keep, _aosoa_plastic,
                         numFrozen() );
         resize( frozen_offset + num_keep, 0 );
         updateGlobal();
@@ -749,6 +792,7 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
             h5_config, "particles", MPI_COMM_WORLD, output_step, output_time,
             localOffset(), getPosition( use_reference ), sliceForce(),
             sliceDisplacement(), sliceVelocity(), sliceType(),
+            slicePlasticStrain(), slicePlasticStrainRate(), sliceYieldStress(),
             std::forward<OtherFields>( other )... );
 #else
 #ifdef Cabana_ENABLE_SILO
@@ -757,6 +801,8 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
                 "particles", local_grid->globalGrid(), output_step, output_time,
                 0, localOffset(), getPosition( use_reference ), sliceForce(),
                 sliceDisplacement(), sliceVelocity(), sliceType(),
+                slicePlasticStrain(), slicePlasticStrainRate(),
+                sliceYieldStress(),
                 std::forward<OtherFields>( other )... );
 
 #else
@@ -786,6 +832,7 @@ class Particles<MemorySpace, PMB, TemperatureIndependent, BaseOutput, Dimension>
     aosoa_nofail_type _aosoa_nofail;
     aosoa_material_type _aosoa_material;
     aosoa_other_type _aosoa_other;
+    aosoa_plastic_type _aosoa_plastic;
 
     plist_x_type _plist_x;
     plist_f_type _plist_f;

@@ -138,6 +138,14 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     }
 
     KOKKOS_INLINE_FUNCTION
+    double pointYieldStress( const int i ) const
+    {
+        const double eps_p = _eps_p( i );
+        return hardeningYieldStress( eps_p ) *
+               rateFactor( pointPlasticStrainRate( i ) );
+    }
+
+    KOKKOS_INLINE_FUNCTION
     auto operator()( ForceCoeffTag, const int i, const int j, const double s,
                      const double vol, const int n_id ) const
     {
@@ -164,18 +172,19 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
             _s_p( i, n_id ) = s + s_Y;
         // else: Elastic (in between), do not modify.
 
-        if ( sample_pid >= 0 && i == sample_pid && n_id == 0 )
-        {
-            const int step =
-                Kokkos::atomic_fetch_add( &_print_counter( 0 ), 1 );
-            if ( step % 50 == 0 )
-            {
-                const double s_p_new = _s_p( i, n_id );
-                printf(
-                    "JC hardening step=%d eps_p=%e sigma_y=%e s_Y=%e s=%e s_p=%e s_p_new=%e\n",
-                    step, eps_p_i, sigma_y_i, s_Y, s, s_p, s_p_new );
-            }
-        }
+        // Note: debug printing disabled (data is written to output files).
+        // if ( sample_pid >= 0 && i == sample_pid && n_id == 0 )
+        // {
+        //     const int step =
+        //         Kokkos::atomic_fetch_add( &_print_counter( 0 ), 1 );
+        //     if ( step % 50 == 0 )
+        //     {
+        //         const double s_p_new = _s_p( i, n_id );
+        //         printf(
+        //             "JC hardening step=%d eps_p=%e sigma_y=%e s_Y=%e s=%e s_p=%e s_p_new=%e\n",
+        //             step, eps_p_i, sigma_y_i, s_Y, s, s_p, s_p_new );
+        //     }
+        // }
 
         const double s_eff = s - _s_p( i, n_id );
         return c * s_eff * vol;

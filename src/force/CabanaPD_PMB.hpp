@@ -405,6 +405,57 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
                                       particles.frozenOffset(),
                                       particles.localOffset() );
         }
+
+        if constexpr ( is_multi_force_model<ModelType>::value )
+        {
+            auto type = particles.sliceType();
+            auto eps_p_out = particles.slicePlasticStrain();
+            auto eps_p_dot_out = particles.slicePlasticStrainRate();
+            auto sigma_y_out = particles.sliceYieldStress();
+            auto model = _model;
+            Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
+                                                    particles.localOffset() );
+            auto write_output = KOKKOS_LAMBDA( const int i )
+            {
+                const int t = type( i );
+                if ( t == 0 )
+                {
+                    eps_p_out( i ) = model.model1.pointPlasticStrain()( i );
+                    eps_p_dot_out( i ) =
+                        model.model1.pointPlasticStrainRate( i );
+                    sigma_y_out( i ) = model.model1.pointYieldStress( i );
+                }
+                else
+                {
+                    eps_p_out( i ) = model.model2.pointPlasticStrain()( i );
+                    eps_p_dot_out( i ) =
+                        model.model2.pointPlasticStrainRate( i );
+                    sigma_y_out( i ) = model.model2.pointYieldStress( i );
+                }
+            };
+            Kokkos::parallel_for( "CabanaPD::ForcePMB::outputPlasticStrainMulti",
+                                  policy, write_output );
+            Kokkos::fence();
+        }
+        else if constexpr ( has_point_plastic_strain<ModelType>::value )
+        {
+            auto eps_p_out = particles.slicePlasticStrain();
+            auto eps_p_dot_out = particles.slicePlasticStrainRate();
+            auto sigma_y_out = particles.sliceYieldStress();
+            auto model = _model;
+            Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
+                                                    particles.localOffset() );
+            auto write_output = KOKKOS_LAMBDA( const int i )
+            {
+                eps_p_out( i ) = model.pointPlasticStrain()( i );
+                eps_p_dot_out( i ) = model.pointPlasticStrainRate( i );
+                sigma_y_out( i ) = model.pointYieldStress( i );
+            };
+            Kokkos::parallel_for(
+                "CabanaPD::ForcePMB::outputPlasticStrain", policy,
+                write_output );
+            Kokkos::fence();
+        }
         _timer.stop();
     }
 
@@ -618,6 +669,58 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
             updatePointPlasticStrain( exec_space{}, _neigh_list, _model, vol,
                                       mu, particles.frozenOffset(),
                                       particles.localOffset() );
+        }
+
+        if constexpr ( is_multi_force_model<ModelType>::value )
+        {
+            auto type = particles.sliceType();
+            auto eps_p_out = particles.slicePlasticStrain();
+            auto eps_p_dot_out = particles.slicePlasticStrainRate();
+            auto sigma_y_out = particles.sliceYieldStress();
+            auto model = _model;
+            Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
+                                                    particles.localOffset() );
+            auto write_output = KOKKOS_LAMBDA( const int i )
+            {
+                const int t = type( i );
+                if ( t == 0 )
+                {
+                    eps_p_out( i ) = model.model1.pointPlasticStrain()( i );
+                    eps_p_dot_out( i ) =
+                        model.model1.pointPlasticStrainRate( i );
+                    sigma_y_out( i ) = model.model1.pointYieldStress( i );
+                }
+                else
+                {
+                    eps_p_out( i ) = model.model2.pointPlasticStrain()( i );
+                    eps_p_dot_out( i ) =
+                        model.model2.pointPlasticStrainRate( i );
+                    sigma_y_out( i ) = model.model2.pointYieldStress( i );
+                }
+            };
+            Kokkos::parallel_for(
+                "CabanaPD::ForcePMB::outputPlasticStrainMultiDamage", policy,
+                write_output );
+            Kokkos::fence();
+        }
+        else if constexpr ( has_point_plastic_strain<ModelType>::value )
+        {
+            auto eps_p_out = particles.slicePlasticStrain();
+            auto eps_p_dot_out = particles.slicePlasticStrainRate();
+            auto sigma_y_out = particles.sliceYieldStress();
+            auto model = _model;
+            Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
+                                                    particles.localOffset() );
+            auto write_output = KOKKOS_LAMBDA( const int i )
+            {
+                eps_p_out( i ) = model.pointPlasticStrain()( i );
+                eps_p_dot_out( i ) = model.pointPlasticStrainRate( i );
+                sigma_y_out( i ) = model.pointYieldStress( i );
+            };
+            Kokkos::parallel_for(
+                "CabanaPD::ForcePMB::outputPlasticStrainDamage", policy,
+                write_output );
+            Kokkos::fence();
         }
         _timer.stop();
     }
