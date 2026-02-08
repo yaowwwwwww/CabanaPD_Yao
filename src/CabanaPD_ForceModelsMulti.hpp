@@ -37,14 +37,7 @@ struct ForceModels
     using base_model = typename first_model::base_model;
     using thermal_type = typename first_model::thermal_type;
     using fracture_type = typename first_model::fracture_type;
-
-    static_assert( ( std::is_same<typename ModelType1::thermal_type,
-                                  TemperatureIndependent>::value ||
-                     std::is_same<typename ModelType2::thermal_type,
-                                  TemperatureIndependent>::value ||
-                     std::is_same<typename ModelType12::thermal_type,
-                                  TemperatureIndependent>::value ),
-                   "Thermomechanics does not yet support multiple materials!" );
+    using needs_update = std::true_type;
 
     ForceModels( MaterialType t, const ModelType1 m1, ModelType2 m2,
                  ModelType12 m12 )
@@ -125,6 +118,16 @@ struct ForceModels
     auto maxHorizon() { return delta; }
 
     void update( const MaterialType _type ) { type = _type; }
+
+    // Keep support for the old solver-style updates where type and
+    // temperature are passed separately.
+    template <typename TemperatureType>
+    void update( const TemperatureType _temperature )
+    {
+        model1.update( _temperature );
+        model2.update( _temperature );
+        model12.update( _temperature );
+    }
 
     double delta;
     MaterialType type;
