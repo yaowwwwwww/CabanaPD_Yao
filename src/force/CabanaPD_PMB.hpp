@@ -99,6 +99,26 @@ struct is_multi_force_model<
 {
 };
 
+template <typename T, typename = void>
+struct has_multi_point_plastic_strain : std::false_type
+{
+};
+
+template <typename T>
+struct has_multi_point_plastic_strain<
+    T, std::void_t<decltype( std::declval<T>().model1 ),
+                   decltype( std::declval<T>().model2 ),
+                   decltype( std::declval<T>().model12 )>>
+    : std::bool_constant<
+          has_point_plastic_strain<std::remove_cv_t<std::remove_reference_t<
+              decltype( std::declval<T>().model1 )>>>::value &&
+          has_point_plastic_strain<std::remove_cv_t<std::remove_reference_t<
+              decltype( std::declval<T>().model2 )>>>::value &&
+          has_point_plastic_strain<std::remove_cv_t<std::remove_reference_t<
+              decltype( std::declval<T>().model12 )>>>::value>
+{
+};
+
 template <class ExecSpace, class NeighborListType, class ModelType,
           class VolumeSliceType>
 void updatePointPlasticStrain( ExecSpace exec_space,
@@ -393,7 +413,8 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
             neigh_op_tag, "CabanaPD::ForcePMB::computeFull" );
         Kokkos::fence();
 
-        if constexpr ( is_multi_force_model<ModelType>::value )
+        if constexpr ( is_multi_force_model<ModelType>::value &&
+                       has_multi_point_plastic_strain<ModelType>::value )
         {
             updatePointPlasticStrainMulti( exec_space{}, _neigh_list, _model,
                                            vol, particles.frozenOffset(),
@@ -406,7 +427,8 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
                                       particles.localOffset() );
         }
 
-        if constexpr ( is_multi_force_model<ModelType>::value )
+        if constexpr ( is_multi_force_model<ModelType>::value &&
+                       has_multi_point_plastic_strain<ModelType>::value )
         {
             auto type = particles.sliceType();
             auto eps_p_out = particles.slicePlasticStrain();
@@ -657,7 +679,8 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
                               force_full );
         Kokkos::fence();
 
-        if constexpr ( is_multi_force_model<ModelType>::value )
+        if constexpr ( is_multi_force_model<ModelType>::value &&
+                       has_multi_point_plastic_strain<ModelType>::value )
         {
             updatePointPlasticStrainMulti( exec_space{}, _neigh_list, _model,
                                            vol, mu,
@@ -671,7 +694,8 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
                                       particles.localOffset() );
         }
 
-        if constexpr ( is_multi_force_model<ModelType>::value )
+        if constexpr ( is_multi_force_model<ModelType>::value &&
+                       has_multi_point_plastic_strain<ModelType>::value )
         {
             auto type = particles.sliceType();
             auto eps_p_out = particles.slicePlasticStrain();

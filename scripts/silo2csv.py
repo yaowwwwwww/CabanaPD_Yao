@@ -8,7 +8,10 @@ arrays = [
     "rank_0/velocities",
     "rank_0/forces",
     "rank_0/damage",
+    "rank_0/plastic_strain",
+    "rank_0/plastic_strain_rate",
     "rank_0/strain_energy",
+    "rank_0/yield_stress",
     "rank_0/type",
 ]
 
@@ -32,4 +35,3 @@ for f in files:
     outcsv = base + "_all.csv"
     SaveData(outcsv, proxy=merged, PointDataArrays=arrays)
     print(" -> wrote", outcsv)
-

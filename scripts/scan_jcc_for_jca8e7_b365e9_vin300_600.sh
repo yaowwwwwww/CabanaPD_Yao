@@ -21,7 +21,7 @@ BASE_DIR="${ROOT_DIR}/build"
 #   ${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}
 # You can override full output directory with RUNS_ROOT_OVERRIDE.
 # Keep tag short by default (date + scan name).
-RUN_TAG_BASE="${RUN_TAG_BASE:-scan_jcc}"
+RUN_TAG_BASE="${RUN_TAG_BASE:-scan_jcc_jca8e7_b365e9_vin300_600}"
 # Optional: provide a summary file path to replay exact case_name entries.
 CASE_LIST_FILE="${CASE_LIST_FILE:-}"
 
@@ -32,12 +32,12 @@ CZM_YIELD_FIXED=0.05
 JC_N_FIXED=0.31
 
 # ========= Scan params (edit these lists) =========
-BALL_VIN_LIST=(400 500 600)
-LJ_ALPHA_LIST=(1e-6)
+BALL_VIN_LIST=(200 300 400 500 600)
+LJ_ALPHA_LIST=(6.67e-7)
 LJ_BETA_LIST=(0.5)
-JC_A_LIST=(2e9)
-JC_B_LIST=(2e9)
-JC_C_LIST=(0.025 0.05 0.1 0.2 0.5 1 2 5 10 20 50 100 200 500 1000 2000 5000 10000 25000)
+JC_A_LIST=(8e7)
+JC_B_LIST=(3.65e9)
+JC_C_LIST=(0.0025 0.02 0.1 1 10 100 1000 10000)
 
 require_cmd() {
   local cmd="$1"

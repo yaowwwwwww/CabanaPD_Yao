@@ -113,12 +113,7 @@ struct BaseForceModelPMB<ElasticPerfectlyPlastic, MemorySpace>
     auto operator()( ForceCoeffTag, const int i, const int, const double s,
                      const double vol, const int n ) const
     {
-        // Update bond plastic stretch.
-        auto s_p = _s_p( i, n );
-        // Yield in tension.
-        if ( s >= s_p + s_Y )
-            _s_p( i, n ) = s - s_Y;
-        // Yield in compression.
+        // Update bond plastic stretch.x compression.
         else if ( s <= s_p - s_Y )
             _s_p( i, n ) = s + s_Y;
         // else: Elastic (in between), do not modify.

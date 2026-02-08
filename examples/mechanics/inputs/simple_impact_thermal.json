@@ -42,7 +42,7 @@
     "unit": "m"
   },
   "ball_initial_velocity": {
-    "value": 500,
+    "value": 300,
     "unit": "m/s"
   },
   "horizon": {
@@ -71,8 +71,8 @@
   },
   "yield_stress": {
     "value": [
-      8.0E+7,
-      8.0E+7
+      9E+7,
+      9E+7
     ],
     "unit": "Pa"
   },
@@ -91,8 +91,8 @@
   },
   "jc_C": {
     "value": [
-      0.0,
-      0.0
+      0.025,
+      0.025
     ]
   },
   "jc_epsdot0": {
@@ -145,10 +145,10 @@
     "value": 0.7
   },
   "LJbeta": {
-    "value": 0.3
+    "value": 0.5
   },
   "LJalpha": {
-    "value": 1E-12
+    "value": 1E-6
   },
   "LJr0": {
     "value": 0.8

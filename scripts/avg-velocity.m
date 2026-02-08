@@ -8,16 +8,47 @@ clear; clc;
 root_dir = pwd;
 
 % ---------- 输出汇总日志 ----------
-logfile = fullfile(root_dir, "summary_cor_hmax_recomputed.txt");
-fid_log = fopen(logfile, "w");
+summary_env = getenv("SUMMARY_FILE");
+if isempty(summary_env)
+    logfile = fullfile(root_dir, "summary_cor_hmax_recomputed.txt");
+else
+    logfile = summary_env;
+end
+
+single_case_dir = getenv("SINGLE_CASE_DIR");
+single_case = ~isempty(single_case_dir);
+
+if single_case
+    % append-only mode for a single case (called by scan script)
+    if exist(logfile, "file") == 2
+        fid_log = fopen(logfile, "a");
+    else
+        fid_log = fopen(logfile, "w");
+        if fid_log >= 0
+            fprintf(fid_log, "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n");
+        end
+    end
+else
+    fid_log = fopen(logfile, "w");
+    if fid_log >= 0
+        fprintf(fid_log, "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n");
+    end
+end
+
 if fid_log < 0
     error("无法创建日志文件: %s", logfile);
 end
-fprintf(fid_log, "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n");
 
 % ---------- 找所有模拟子目录 ----------
-dirs = dir("run_vin_*");
-dirs = dirs([dirs.isdir]);
+if single_case
+    % compute only the provided case; preserve full name with decimals
+    [case_path, base, ext] = fileparts(single_case_dir);
+    case_name = [base ext];
+    dirs = struct("name", case_name, "folder", case_path);
+else
+    dirs = dir("run_vin_*");
+    dirs = dirs([dirs.isdir]);
+end
 
 if isempty(dirs)
     error("当前目录下没有找到 run_vin_* 子目录");
@@ -30,7 +61,11 @@ for id = 1:numel(dirs)
     fprintf("\n==============================\n");
     fprintf("Case %d / %d : %s\n", id, numel(dirs), case_name);
 
-    case_dir = fullfile(root_dir, case_name);
+    if single_case
+        case_dir = single_case_dir;
+    else
+        case_dir = fullfile(root_dir, case_name);
+    end
     cd(case_dir);
 
     % ----------------------------------------------------------
@@ -50,18 +85,38 @@ for id = 1:numel(dirs)
     files = files(idx);
     nFrames = numel(files);
 
-    % --------- 列索引（按你之前的定义） ---------
-    col_type = 3;
-    col_x = 13;  col_y = 14;  col_z = 15;
-    col_vx = 10; col_vy = 11; col_vz = 12;
+    % --------- 列索引（从 CSV 表头自动匹配） ---------
+    fid_hdr = fopen(files(1).name, "r");
+    if fid_hdr < 0
+        error("Cannot open CSV header: %s", files(1).name);
+    end
+    header_line = fgetl(fid_hdr);
+    fclose(fid_hdr);
+    headers = strsplit(strrep(header_line, "\"", ""), ",");
+
+    col_type = find(strcmp(headers, "rank_0/type"), 1);
+    col_vx   = find(strcmp(headers, "rank_0/velocities:0"), 1);
+    col_vy   = find(strcmp(headers, "rank_0/velocities:1"), 1);
+    col_vz   = find(strcmp(headers, "rank_0/velocities:2"), 1);
+    col_x    = find(strcmp(headers, "Points:0"), 1);
+    col_y    = find(strcmp(headers, "Points:1"), 1);
+    col_z    = find(strcmp(headers, "Points:2"), 1);
+
+    if isempty(col_type) || isempty(col_vx) || isempty(col_vy) || isempty(col_vz) || isempty(col_x) || isempty(col_y) || isempty(col_z)
+        % Fallback: no/unknown header, use legacy fixed columns
+        col_type = 3;
+        col_vx = 10; col_vy = 11; col_vz = 12;
+        col_x = 13;  col_y = 14;  col_z = 15;
+    end
 
 % ==========================================================
 % 1) 计算 vin / vout / CoR / Lateralmax （用你原来的公式）
 %    projectile: type = ball_type
 % ==========================================================
-ball_type = 1;
-substrate_type = 0;
+ball_type = 0;
+substrate_type = 1;
     vavg  = nan(nFrames,1);
+    vmag  = nan(nFrames,1);
     dcoef = nan(nFrames,1);
 
     for k = 1:nFrames
@@ -74,10 +129,12 @@ substrate_type = 0;
 
         if isempty(subset)
             avg_vz = NaN;
+            avg_vmag = NaN;
             deform_coeff = NaN;
         else
             % average normal velocity (signed)
             avg_vz = mean(subset(:, col_vz));
+            avg_vmag = mean(sqrt(sum(subset(:, [col_vx col_vy col_vz]).^2, 2)));
 
             % ---- lateral deformation coefficient ----
             dx = max(subset(:, col_x)) - min(subset(:, col_x));
@@ -89,7 +146,17 @@ substrate_type = 0;
         end
 
         vavg(k)  = avg_vz;
+        vmag(k)  = avg_vmag;
         dcoef(k) = deform_coeff;
+    end
+
+    % ---- record avg_vmag per frame (same format as old avg-velocity.m) ----
+    fout_vmag = fopen("avg_vmag.csv", "w");
+    if fout_vmag >= 0
+        for k = 1:nFrames
+            fprintf(fout_vmag, "%.6e\n", vmag(k));
+        end
+        fclose(fout_vmag);
     end
 
     % --------- compute vin / vout / CoR ---------
@@ -367,8 +434,12 @@ substrate_type = 0;
     fprintf("  h_mean_residual = %.6e m\n",  h_mean_residual);
 
     % ---------- 写入一行 summary ----------
+    summary_name = case_name;
+    if length(summary_name) >= 4 && strcmp(summary_name(1:4), "run_")
+        summary_name = summary_name(5:end);
+    end
     fprintf(fid_log, "%s  %.6e  %.6e  %.6e  %.6e  %.6e  %d  %.6e  %.6e  %.6e\n", ...
-            case_name, vin, vout, CoR, Lateralmax, h_max, h_idx, ...
+            summary_name, vin, vout, CoR, Lateralmax, h_max, h_idx, ...
             h_residual, A_residual, h_mean_residual);
     fflush(fid_log);
 
