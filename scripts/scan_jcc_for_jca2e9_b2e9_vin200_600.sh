@@ -200,7 +200,18 @@ else
 fi
 
 if [ ! -f "${SUMMARY_FILE}" ]; then
-  printf "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n" > "${SUMMARY_FILE}"
+  {
+    printf "# params: BALL_VIN_LIST=%s; LJ_ALPHA_LIST=%s; LJ_BETA_LIST=%s; JC_A_LIST=%s; JC_B_LIST=%s; JC_C_LIST=%s; JC_N_FIXED=%s; CZM=(%s,%s,%s)\n" \
+      "${BALL_VIN_LIST[*]}" \
+      "${LJ_ALPHA_LIST[*]}" \
+      "${LJ_BETA_LIST[*]}" \
+      "${JC_A_LIST[*]}" \
+      "${JC_B_LIST[*]}" \
+      "${JC_C_LIST[*]}" \
+      "${JC_N_FIXED}" \
+      "${CZM_SCALE_FIXED}" "${CZM_YIELD_FIXED}" "${CZM_DECAY_FIXED}"
+    printf "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n"
+  } > "${SUMMARY_FILE}"
 fi
 
 WORK_INPUT_JSON="${RUNS_ROOT}/_current_input.json"

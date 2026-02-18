@@ -29,7 +29,9 @@ struct JohnsonCook
 {
 };
 
-// Johnson-Cook plasticity for PMB (bond-based), hardening only.
+// Johnson-Cook plasticity for PMB:
+// sigma = (A + B*eps_p^n) * (1 + C*ln(epsdot/epsdot0)) * (1 - (T*)^m)
+// T* = (T - T_ref) / (T_melt - T_ref), clamped to [0,1].
 template <class MemorySpace>
 struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     : public BaseForceModelPMB<Elastic>, public BasePlasticity<MemorySpace>
@@ -49,18 +51,30 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     // Rate term (framework only; not used yet).
     double C;
     double eps_dot0;
+    // Adiabatic heating parameters.
+    double cp_adiabatic;
+    double taylor_quinney;
+    double T_ref;
+    double T_melt;
+    double m_thermal;
     int sample_pid;
     double dt;
     Kokkos::View<int*, MemorySpace> _print_counter;
     // Point-level equivalent plastic strain (lagged) for JC hardening.
     Kokkos::View<double*, MemorySpace> _eps_p;
     Kokkos::View<double*, MemorySpace> _eps_p_prev;
+    Kokkos::View<double*, MemorySpace> _temp_adiabatic;
 
     BaseForceModelPMB( PMB model, mechanics_type, MemorySpace,
                        const double delta, const double _K, const double _A,
                        const double _B, const double _n,
                        const double _C = 0.0, const double _eps_dot0 = 1.0,
-                       const int _sample_pid = -1, const double _dt = 0.0 )
+                       const int _sample_pid = -1, const double _dt = 0.0,
+                       const double _cp_adiabatic = 0.0,
+                       const double _taylor_quinney = 0.9,
+                       const double _T_ref = 298.0,
+                       const double _T_melt = 1356.0,
+                       const double _m_thermal = 1.09 )
         : base_type( model, NoFracture{}, delta, _K )
         , base_plasticity_type()
         , A( _A )
@@ -68,6 +82,11 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         , n( _n )
         , C( _C )
         , eps_dot0( _eps_dot0 )
+        , cp_adiabatic( _cp_adiabatic )
+        , taylor_quinney( _taylor_quinney )
+        , T_ref( _T_ref )
+        , T_melt( _T_melt )
+        , m_thermal( _m_thermal )
         , sample_pid( _sample_pid )
         , dt( _dt )
     {
@@ -84,6 +103,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         n = ( model1.n + model2.n ) / 2.0;
         C = ( model1.C + model2.C ) / 2.0;
         eps_dot0 = ( model1.eps_dot0 + model2.eps_dot0 ) / 2.0;
+        cp_adiabatic = ( model1.cp_adiabatic + model2.cp_adiabatic ) / 2.0;
+        taylor_quinney =
+            ( model1.taylor_quinney + model2.taylor_quinney ) / 2.0;
+        T_ref = ( model1.T_ref + model2.T_ref ) / 2.0;
+        T_melt = ( model1.T_melt + model2.T_melt ) / 2.0;
+        m_thermal = ( model1.m_thermal + model2.m_thermal ) / 2.0;
         sample_pid = -1;
         dt = 0.5 * ( model1.dt + model2.dt );
     }
@@ -95,8 +120,10 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         Kokkos::deep_copy( _print_counter, 0 );
         Kokkos::realloc( _eps_p, num_local );
         Kokkos::realloc( _eps_p_prev, num_local );
+        Kokkos::realloc( _temp_adiabatic, num_local );
         Kokkos::deep_copy( _eps_p, 0.0 );
         Kokkos::deep_copy( _eps_p_prev, 0.0 );
+        Kokkos::deep_copy( _temp_adiabatic, 0.0 );
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -121,12 +148,27 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         return 1.0 + C * Kokkos::log( ratio );
     }
 
+    KOKKOS_INLINE_FUNCTION
+    double thermalFactor( const int i ) const
+    {
+        if ( m_thermal <= 0.0 || T_melt <= T_ref )
+            return 1.0;
+
+        const double T = T_ref + _temp_adiabatic( i );
+        double T_star = ( T - T_ref ) / ( T_melt - T_ref );
+        T_star = Kokkos::fmax( 0.0, Kokkos::fmin( 1.0, T_star ) );
+        const double soft = 1.0 - Kokkos::pow( T_star, m_thermal );
+        return Kokkos::fmax( 0.0, soft );
+    }
+
     // Accessors for point-level plasticity aggregation.
     auto plasticStretch() const { return _s_p; }
     auto pointPlasticStrain() { return _eps_p; }
     auto pointPlasticStrainPrev() { return _eps_p_prev; }
     auto pointPlasticStrain() const { return _eps_p; }
     auto pointPlasticStrainPrev() const { return _eps_p_prev; }
+    auto pointAdiabaticTemperature() { return _temp_adiabatic; }
+    auto pointAdiabaticTemperature() const { return _temp_adiabatic; }
 
     KOKKOS_INLINE_FUNCTION
     double pointPlasticStrainRate( const int i ) const
@@ -142,7 +184,7 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     {
         const double eps_p = _eps_p( i );
         return hardeningYieldStress( eps_p ) *
-               rateFactor( pointPlasticStrainRate( i ) );
+               rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -157,11 +199,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         const double eps_p_j = j_local ? _eps_p( j ) : eps_p_i;
         const double sigma_y_i =
             hardeningYieldStress( eps_p_i ) *
-            rateFactor( pointPlasticStrainRate( i ) );
+            rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
         const double sigma_y_j =
             hardeningYieldStress( eps_p_j ) *
             rateFactor( j_local ? pointPlasticStrainRate( j )
-                                : pointPlasticStrainRate( i ) );
+                                : pointPlasticStrainRate( i ) ) *
+            ( j_local ? thermalFactor( j ) : thermalFactor( i ) );
         const double s_Y = 0.5 * ( sigma_y_i + sigma_y_j ) / ( 3.0 * K );
 
         // Yield in tension.
@@ -203,11 +246,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         const double eps_p_j = j_local ? _eps_p( j ) : eps_p_i;
         const double sigma_y_i =
             hardeningYieldStress( eps_p_i ) *
-            rateFactor( pointPlasticStrainRate( i ) );
+            rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
         const double sigma_y_j =
             hardeningYieldStress( eps_p_j ) *
             rateFactor( j_local ? pointPlasticStrainRate( j )
-                                : pointPlasticStrainRate( i ) );
+                                : pointPlasticStrainRate( i ) ) *
+            ( j_local ? thermalFactor( j ) : thermalFactor( i ) );
         const double s_Y = 0.5 * ( sigma_y_i + sigma_y_j ) / ( 3.0 * K );
         double stretch_term;
 
@@ -269,9 +313,15 @@ struct ForceModel<PMB, JohnsonCook, Fracture, TemperatureIndependent,
                 const double delta, const double K, const double G0,
                 const double A, const double B, const double n,
                 const double C = 0.0, const double eps_dot0 = 1.0,
-                const int sample_id = -1, const double dt = 0.0 )
+                const int sample_id = -1, const double dt = 0.0,
+                const double cp_adiabatic = 0.0,
+                const double taylor_quinney = 0.9,
+                const double T_ref = 298.0,
+                const double T_melt = 1356.0,
+                const double m_thermal = 1.09 )
         : base_type( model, mechanics, space, delta, K, A, B, n, C, eps_dot0,
-                     sample_id, dt )
+                     sample_id, dt, cp_adiabatic, taylor_quinney, T_ref,
+                     T_melt, m_thermal )
         , base_fracture_type( delta, K, G0 )
         , base_temperature_type()
     {
@@ -328,7 +378,7 @@ struct ForceModel<PMB, JohnsonCook, NoFracture, DynamicTemperature,
                 const double temp0 = 0.0,
                 const bool constant_microconductivity = true )
         : base_type( model, mechanics, typename TemperatureType::memory_space{},
-                     delta, K, A, B, n, C, eps_dot0, -1, dt )
+                     delta, K, A, B, n, C, eps_dot0, -1, dt, cp )
         , base_temperature_type( temp, alpha, temp0 )
         , base_heat_transfer_type( delta, kappa, cp,
                                    constant_microconductivity )
@@ -376,7 +426,7 @@ struct ForceModel<PMB, JohnsonCook, Fracture, DynamicTemperature,
                 const double temp0 = 0.0,
                 const bool constant_microconductivity = true )
         : base_type( model, mechanics, typename TemperatureType::memory_space{},
-                     delta, K, A, B, n, C, eps_dot0, -1, dt )
+                     delta, K, A, B, n, C, eps_dot0, -1, dt, cp )
         , base_temperature_type( delta, K, G0, temp, alpha, temp0 )
         , base_heat_transfer_type( delta, kappa, cp,
                                    constant_microconductivity )
@@ -401,7 +451,11 @@ template <typename ModelType, typename MemorySpace>
 ForceModel( ModelType, JohnsonCook, MemorySpace, const double delta,
             const double K, const double G0, const double A, const double B,
             const double n, const double C, const double eps_dot0,
-            const int sample_id, const double dt )
+            const int sample_id, const double dt,
+            const double cp_adiabatic = 0.0,
+            const double taylor_quinney = 0.9,
+            const double T_ref = 298.0, const double T_melt = 1356.0,
+            const double m_thermal = 1.09 )
     -> ForceModel<ModelType, JohnsonCook, Fracture, TemperatureIndependent,
                   MemorySpace>;
 

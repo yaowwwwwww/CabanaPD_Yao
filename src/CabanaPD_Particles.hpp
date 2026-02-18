@@ -1199,6 +1199,118 @@ class Particles<MemorySpace, Contact, ThermalType, BaseOutput, Dimension>
     aosoa_u_neigh_type _aosoa_u_neigh;
 };
 
+template <class MemorySpace, int Dimension>
+class Particles<MemorySpace, Contact, TemperatureDependent, BaseOutput,
+                Dimension>
+    : public Particles<MemorySpace, Contact, TemperatureIndependent,
+                       BaseOutput, Dimension>
+{
+  public:
+    using self_type = Particles<MemorySpace, Contact, TemperatureDependent,
+                                BaseOutput, Dimension>;
+    using base_type = Particles<MemorySpace, Contact, TemperatureIndependent,
+                                BaseOutput, Dimension>;
+    using thermal_type = TemperatureDependent;
+    using output_type = typename base_type::output_type;
+    using memory_space = typename base_type::memory_space;
+    using base_type::dim;
+
+    using temp_types = Cabana::MemberTypes<double, double>;
+    using aosoa_temp_type = Cabana::AoSoA<temp_types, memory_space, 1>;
+
+    using base_type::n_types;
+    using base_type::global_mesh_ext;
+    using base_type::ghost_mesh_hi;
+    using base_type::ghost_mesh_lo;
+    using base_type::local_mesh_ext;
+    using base_type::local_mesh_hi;
+    using base_type::local_mesh_lo;
+    using base_type::dx;
+    using base_type::local_grid;
+    using base_type::halo_width;
+
+    template <typename ModelType, typename... Args>
+    Particles( MemorySpace space, ModelType model, TemperatureDependent,
+               Args&&... args )
+        : base_type( space, model, std::forward<Args>( args )... )
+    {
+        _aosoa_temp =
+            aosoa_temp_type( "Particle Temperature", base_type::localOffset() );
+        init_temp();
+    }
+
+    template <typename... Args>
+    void createParticles( Args&&... args )
+    {
+        base_type::createParticles( std::forward<Args>( args )... );
+        _aosoa_temp.resize( base_type::localOffset() );
+    }
+
+    auto sliceTemperature()
+    {
+        return Cabana::slice<0>( _aosoa_temp, "temperature" );
+    }
+    auto sliceTemperature() const
+    {
+        return Cabana::slice<0>( _aosoa_temp, "temperature" );
+    }
+    auto sliceTemperatureConduction()
+    {
+        return Cabana::slice<1>( _aosoa_temp, "temperature_conduction" );
+    }
+    auto sliceTemperatureConduction() const
+    {
+        return Cabana::slice<1>( _aosoa_temp, "temperature_conduction" );
+    }
+    auto sliceTemperatureConductionAtomic()
+    {
+        auto temp = sliceTemperature();
+        using slice_type = decltype( temp );
+        using atomic_type = typename slice_type::atomic_access_slice;
+        atomic_type temp_a = temp;
+        return temp_a;
+    }
+
+    template <typename... Args>
+    void resize( Args&&... args )
+    {
+        base_type::resize( std::forward<Args>( args )... );
+        _aosoa_temp.resize( base_type::referenceOffset() );
+    }
+
+    template <typename KeepType>
+    void remove( const int num_keep, const KeepType& keep )
+    {
+        base_type::remove( num_keep, keep );
+        Cabana::remove( typename base_type::execution_space(), num_keep, keep,
+                        _aosoa_temp, base_type::numFrozen() );
+        resize( base_type::numFrozen() + num_keep, 0 );
+    }
+
+    template <typename... OtherFields>
+    void output( const int output_step, const double output_time,
+                 const bool use_reference, OtherFields&&... other )
+    {
+        base_type::output( output_step, output_time, use_reference,
+                           sliceTemperature(),
+                           std::forward<OtherFields>( other )... );
+    }
+
+    friend class Comm<self_type, Pair, SingleMaterial, TemperatureIndependent>;
+    friend class Comm<self_type, Pair, SingleMaterial, TemperatureDependent>;
+    friend class Comm<self_type, Pair, MultiMaterial, TemperatureIndependent>;
+    friend class Comm<self_type, Pair, MultiMaterial, TemperatureDependent>;
+
+  protected:
+    void init_temp()
+    {
+        auto temp = sliceTemperature();
+        Cabana::deep_copy( temp, 0.0 );
+    }
+
+    aosoa_temp_type _aosoa_temp;
+};
+
 template <class MemorySpace, class ModelType, class ThermalType, int Dimension>
 class Particles<MemorySpace, ModelType, ThermalType, EnergyOutput, Dimension>
     : public Particles<MemorySpace, ModelType, ThermalType, BaseOutput,

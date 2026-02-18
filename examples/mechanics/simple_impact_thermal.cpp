@@ -71,12 +71,29 @@ void coldspray_thermal( const std::string filename )
     double n_Al = inputs["jc_n"][0];
     double C_Al = inputs["jc_C"][0];
     double epsdot0_Al = inputs["jc_epsdot0"][0];
+    double cp_Al = inputs["specific_heat_capacity"][0];
 
     double A_Cu = sigma_y_Cu;
     double B_Cu = inputs["jc_B"][1];
     double n_Cu = inputs["jc_n"][1];
     double C_Cu = inputs["jc_C"][1];
     double epsdot0_Cu = inputs["jc_epsdot0"][1];
+    double cp_Cu = inputs["specific_heat_capacity"][1];
+    double temp0_Al = inputs["reference_temperature"][0];
+    double temp0_Cu = inputs["reference_temperature"][1];
+    double m_Al =
+        inputs.contains( "jc_m" ) ? inputs["jc_m"][0].get<double>() : 0.0;
+    double m_Cu =
+        inputs.contains( "jc_m" ) ? inputs["jc_m"][1].get<double>() : 0.0;
+    double Tm_Al = inputs.contains( "jc_Tmelt" )
+                       ? inputs["jc_Tmelt"][0].get<double>()
+                       : temp0_Al + 1.0;
+    double Tm_Cu = inputs.contains( "jc_Tmelt" )
+                       ? inputs["jc_Tmelt"][1].get<double>()
+                       : temp0_Cu + 1.0;
+    double chi_tq = 0.9;
+    if ( inputs.contains( "taylor_quinney" ) )
+        chi_tq = inputs["taylor_quinney"];
     double dt = inputs["timestep"];
    
     // ====================================================
@@ -137,14 +154,18 @@ void coldspray_thermal( const std::string filename )
         std::cout << "contact activated"<< std::endl;
         using contact_type = CabanaPD::NormalRepulsionModel;
 
-        CabanaPD::Particles particles(
-            memory_space{}, contact_type{}, low_corner, high_corner, num_cells,
-            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
+        CabanaPD::Particles<memory_space, CabanaPD::Contact,
+                            CabanaPD::TemperatureDependent>
+            particles(
+            memory_space{}, contact_type{}, CabanaPD::TemperatureDependent{},
+            low_corner, high_corner, num_cells, halo_width, Cabana::InitRandom{},
+            init_op, exec_space{} );
 
         auto rho = particles.sliceDensity();
         auto x = particles.sliceReferencePosition();
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
+        auto temp = particles.sliceTemperature();
         auto dx = particles.dx ;
         auto itype = particles.sliceType(); // particle type: ball or plate    // material type:1=Al_ball, 0=Cu_substrate
         auto nofail= particles.sliceNoFail();   //  make  ball particles not fail
@@ -160,12 +181,14 @@ void coldspray_thermal( const std::string filename )
                 v(pid, 2) = -vz_ball; // impact velocity downwards
                 itype(pid) = 0; // ball
                 rho(pid) = rho_Al;
+                temp(pid) = temp0_Al;
             }
             else
             {
                 v(pid, 2) = 0.0;
                 itype(pid) = 1; // plate
                 rho(pid) = rho_Cu;
+                temp(pid) = temp0_Cu;
             }
             nofail(pid) = (itype(pid) == 0); // make ball particles not fail
         };
@@ -191,12 +214,15 @@ void coldspray_thermal( const std::string filename )
         CabanaPD::ForceModel force_model_Al( model_type{}, mechanics_type{},
                                              memory_space{}, delta, K_Al, G0_Al,
                                              A_Al, B_Al, n_Al, C_Al,
-                                             epsdot0_Al, sample_pid, dt );
+                                             epsdot0_Al, sample_pid, dt,
+                                             cp_Al, chi_tq, temp0_Al, Tm_Al,
+                                             m_Al );
 
         CabanaPD::ForceModel force_model_Cu( model_type{}, mechanics_type{},
                                              memory_space{}, delta, K_Cu, G0_Cu,
                                              A_Cu, B_Cu, n_Cu, C_Cu,
-                                             epsdot0_Cu, -1, dt );
+                                             epsdot0_Cu, -1, dt, cp_Cu,
+                                             chi_tq, temp0_Cu, Tm_Cu, m_Cu );
 
         // Use contact radius and extension relative to particle spacing.
         double r_c = inputs["contact_horizon_factor"];
@@ -303,14 +329,18 @@ void coldspray_thermal( const std::string filename )
     else
     {
         std::cout << "no contact"<< std::endl;
-        CabanaPD::Particles particles(
-            memory_space{}, model_type{}, low_corner, high_corner, num_cells,
-            halo_width, Cabana::InitRandom{}, init_op, exec_space{} );
+        CabanaPD::Particles<memory_space, model_type,
+                            CabanaPD::TemperatureDependent>
+            particles(
+            memory_space{}, model_type{}, CabanaPD::TemperatureDependent{},
+            low_corner, high_corner, num_cells, halo_width, init_op,
+            exec_space{} );
 
         auto rho = particles.sliceDensity();
         auto x = particles.sliceReferencePosition();
         auto v = particles.sliceVelocity();
         auto f = particles.sliceForce();
+        auto temp = particles.sliceTemperature();
         auto init_functor = KOKKOS_LAMBDA( const int pid )
         {
              
@@ -322,11 +352,13 @@ void coldspray_thermal( const std::string filename )
                 v(pid, 2) = -vz_ball; // impact velocity downwards
                     
                 rho(pid) = rho_Al;
+                temp(pid) = temp0_Al;
             }
             else
             {
                 v(pid, 2) = 0.0; 
-                 rho(pid) = rho_Cu;
+                rho(pid) = rho_Cu;
+                temp(pid) = temp0_Cu;
             }
         };
         particles.updateParticles( exec_space{}, init_functor );

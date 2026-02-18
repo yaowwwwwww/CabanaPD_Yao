@@ -102,6 +102,19 @@
     ],
     "unit": "1/s"
   },
+  "jc_m": {
+    "value": [
+      1.09,
+      1.09
+    ]
+  },
+  "jc_Tmelt": {
+    "value": [
+      1356.0,
+      1356.0
+    ],
+    "unit": "K"
+  },
   "fracture_energy": {
     "value": [
       100000.0,
@@ -125,15 +138,18 @@
   },
   "specific_heat_capacity": {
     "value": [
-      385,
-      385
+      383,
+      383
     ],
     "unit": "J/(kg.K)"
   },
+  "taylor_quinney": {
+    "value": 0.9
+  },
   "reference_temperature": {
     "value": [
-      300.0,
-      300.0
+      298.0,
+      298.0
     ],
     "unit": "K"
   },

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
-# Generic and resumable scan driver for CabanaPD.
-# - Exact resume/skip based on summary case_name.
-# - Clear staging outputs only when a case fails.
-# - Does not overwrite the template input JSON.
+# Scan JC thermal softening parameter m (jc_m) for vin=300/600.
+# - Resumable based on summary case_name.
+# - Uses the same postprocess chain:
+#   CabanaPD -> pvpython(silo2csv) -> octave(avg-velocity.m)
 # ============================================================
 
 set -u
@@ -17,12 +17,7 @@ OCT_SCRIPT="${ROOT_DIR}/scripts/avg-velocity.m"
 BASE_DIR="${ROOT_DIR}/build"
 
 # ========= Run naming =========
-# Output directory:
-#   ${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}
-# You can override full output directory with RUNS_ROOT_OVERRIDE.
-# Keep tag short by default (date + scan name).
-RUN_TAG_BASE="${RUN_TAG_BASE:-scan_jcc_jca8e7_b365e9_vin300_600}"
-# Optional: provide a summary file path to replay exact case_name entries.
+RUN_TAG_BASE="${RUN_TAG_BASE:-scan_jcm_softening_vin300_600}"
 CASE_LIST_FILE="${CASE_LIST_FILE:-}"
 
 # ========= Fixed params =========
@@ -31,13 +26,14 @@ CZM_DECAY_FIXED=1.0
 CZM_YIELD_FIXED=0.05
 JC_N_FIXED=0.31
 
-# ========= Scan params (edit these lists) =========
-BALL_VIN_LIST=(200 300 400 500 600)
-LJ_ALPHA_LIST=(6.67e-7)
+# ========= Scan params =========
+BALL_VIN_LIST=(300 600)
+LJ_ALPHA_LIST=(1e-6)
 LJ_BETA_LIST=(0.5)
-JC_A_LIST=(8e7)
-JC_B_LIST=(3.65e9)
-JC_C_LIST=(0.0025 0.02 0.1 1 10 100 1000 10000)
+JC_A_LIST=(9e7)
+JC_B_LIST=(2.92e8)
+JC_C_LIST=(0.025)
+JC_M_LIST=(0 0.1 0.5 1 1.5 2)
 
 require_cmd() {
   local cmd="$1"
@@ -77,7 +73,8 @@ run_one_case() {
   local JC_A="$4"
   local JC_B="$5"
   local JC_C="$6"
-  local CASE_NAME="vin_${BALL_VIN}_alpha_${LJ_ALPHA}_beta_${LJ_BETA}_A_${JC_A}_B_${JC_B}_C_${JC_C}"
+  local JC_M="$7"
+  local CASE_NAME="vin_${BALL_VIN}_alpha_${LJ_ALPHA}_beta_${LJ_BETA}_A_${JC_A}_B_${JC_B}_C_${JC_C}_M_${JC_M}"
   local CASE_TAG="run_${CASE_NAME}"
   local CASE_DIR="${RUNS_ROOT}/${CASE_TAG}"
 
@@ -97,6 +94,7 @@ run_one_case() {
     --argjson jc_b      "${JC_B}" \
     --argjson jc_n      "${JC_N_FIXED}" \
     --argjson jc_c      "${JC_C}" \
+    --argjson jc_m      "${JC_M}" \
     --argjson czm_scale "${CZM_SCALE_FIXED}" \
     --argjson czm_yield "${CZM_YIELD_FIXED}" \
     --argjson czm_decay "${CZM_DECAY_FIXED}" \
@@ -108,6 +106,7 @@ run_one_case() {
     .jc_B.value                    = [ $jc_b, $jc_b ] |
     .jc_n.value                    = [ $jc_n, $jc_n ] |
     .jc_C.value                    = [ $jc_c, $jc_c ] |
+    .jc_m.value                    = [ $jc_m, $jc_m ] |
     .CZM_cohesive_scaling.value    = $czm_scale |
     .CZM_yield_stretch.value       = $czm_yield |
     .CZM_degradation_rate.value    = $czm_decay
@@ -201,13 +200,14 @@ fi
 
 if [ ! -f "${SUMMARY_FILE}" ]; then
   {
-    printf "# params: BALL_VIN_LIST=%s; LJ_ALPHA_LIST=%s; LJ_BETA_LIST=%s; JC_A_LIST=%s; JC_B_LIST=%s; JC_C_LIST=%s; JC_N_FIXED=%s; CZM=(%s,%s,%s)\n" \
+    printf "# params: BALL_VIN_LIST=%s; LJ_ALPHA_LIST=%s; LJ_BETA_LIST=%s; JC_A_LIST=%s; JC_B_LIST=%s; JC_C_LIST=%s; JC_M_LIST=%s; JC_N_FIXED=%s; CZM=(%s,%s,%s)\n" \
       "${BALL_VIN_LIST[*]}" \
       "${LJ_ALPHA_LIST[*]}" \
       "${LJ_BETA_LIST[*]}" \
       "${JC_A_LIST[*]}" \
       "${JC_B_LIST[*]}" \
       "${JC_C_LIST[*]}" \
+      "${JC_M_LIST[*]}" \
       "${JC_N_FIXED}" \
       "${CZM_SCALE_FIXED}" "${CZM_YIELD_FIXED}" "${CZM_DECAY_FIXED}"
     printf "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n"
@@ -227,10 +227,10 @@ if [ -n "${CASE_LIST_FILE}" ]; then
   fi
   TOTAL_CASES=$(awk '!/^#/ && NF{print $1}' "${CASE_LIST_FILE}" | awk '!seen[$1]++' | wc -l)
 else
-  TOTAL_CASES=$(( ${#BALL_VIN_LIST[@]} * ${#LJ_ALPHA_LIST[@]} * ${#LJ_BETA_LIST[@]} * ${#JC_A_LIST[@]} * ${#JC_B_LIST[@]} * ${#JC_C_LIST[@]} ))
+  TOTAL_CASES=$(( ${#BALL_VIN_LIST[@]} * ${#LJ_ALPHA_LIST[@]} * ${#LJ_BETA_LIST[@]} * ${#JC_A_LIST[@]} * ${#JC_B_LIST[@]} * ${#JC_C_LIST[@]} * ${#JC_M_LIST[@]} ))
 fi
 
-echo "==== Generic scan start ($(date)) ===="
+echo "==== JC-m softening scan start ($(date)) ===="
 echo "Run root: ${RUNS_ROOT}"
 echo "Summary: ${SUMMARY_FILE}"
 echo "Total planned cases: ${TOTAL_CASES}"
@@ -244,19 +244,21 @@ else
   echo "Scan JC_A   = ${JC_A_LIST[*]}"
   echo "Scan JC_B   = ${JC_B_LIST[*]}"
   echo "Scan JC_C   = ${JC_C_LIST[*]}"
+  echo "Scan JC_M   = ${JC_M_LIST[*]}"
 fi
 echo
 
 if [ -n "${CASE_LIST_FILE}" ]; then
   while IFS= read -r CASE_NAME_FROM_FILE; do
-    if [[ "${CASE_NAME_FROM_FILE}" =~ ^vin_([^_]+)_alpha_([^_]+)_beta_([^_]+)_A_([^_]+)_B_([^_]+)_C_([^_]+)$ ]]; then
+    if [[ "${CASE_NAME_FROM_FILE}" =~ ^vin_([^_]+)_alpha_([^_]+)_beta_([^_]+)_A_([^_]+)_B_([^_]+)_C_([^_]+)_M_([^_]+)$ ]]; then
       run_one_case \
         "${BASH_REMATCH[1]}" \
         "${BASH_REMATCH[2]}" \
         "${BASH_REMATCH[3]}" \
         "${BASH_REMATCH[4]}" \
         "${BASH_REMATCH[5]}" \
-        "${BASH_REMATCH[6]}"
+        "${BASH_REMATCH[6]}" \
+        "${BASH_REMATCH[7]}"
     else
       echo "WARN: cannot parse case_name, skip: ${CASE_NAME_FROM_FILE}"
     fi
@@ -268,7 +270,9 @@ else
         for JC_A in "${JC_A_LIST[@]}"; do
           for JC_B in "${JC_B_LIST[@]}"; do
             for JC_C in "${JC_C_LIST[@]}"; do
-              run_one_case "${BALL_VIN}" "${LJ_ALPHA}" "${LJ_BETA}" "${JC_A}" "${JC_B}" "${JC_C}"
+              for JC_M in "${JC_M_LIST[@]}"; do
+                run_one_case "${BALL_VIN}" "${LJ_ALPHA}" "${LJ_BETA}" "${JC_A}" "${JC_B}" "${JC_C}" "${JC_M}"
+              done
             done
           done
         done
@@ -277,7 +281,22 @@ else
   done
 fi
 
+COR_BY_M_FILE="${RUNS_ROOT}/cor_vs_jcm_by_vin.dat"
+{
+  echo "# vin jc_m cor h_max case_name"
+  awk '
+    !/^#/ && NF >= 6 {
+      case_name=$1; cor=$4; hmax=$6;
+      m=""; vin="";
+      if (match(case_name, /vin_([^_]+)/, a)) vin=a[1];
+      if (match(case_name, /_M_([^_]+)/, b)) m=b[1];
+      if (vin != "" && m != "") print vin, m, cor, hmax, case_name;
+    }
+  ' "${SUMMARY_FILE}" | sort -n -k1,1 -k2,2
+} > "${COR_BY_M_FILE}"
+
 echo
 echo "Scan complete."
 echo "Summary: ${SUMMARY_FILE}"
+echo "CoR-by-m table: ${COR_BY_M_FILE}"
 echo "Cases archived under: ${RUNS_ROOT}"

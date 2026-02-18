@@ -119,6 +119,41 @@ struct has_multi_point_plastic_strain<
 {
 };
 
+template <typename T, typename = void>
+struct has_point_adiabatic_temperature : std::false_type
+{
+};
+
+template <typename T>
+struct has_point_adiabatic_temperature<
+    T, std::void_t<decltype( std::declval<T>().pointAdiabaticTemperature() ),
+                   decltype( std::declval<T>().cp_adiabatic ),
+                   decltype( std::declval<T>().taylor_quinney ),
+                   decltype( std::declval<T>().dt )>> : std::true_type
+{
+};
+
+template <typename T, typename = void>
+struct has_slice_temperature : std::false_type
+{
+};
+
+template <typename T>
+struct has_slice_temperature<
+    T, std::void_t<decltype( std::declval<T>().sliceTemperature() )>>
+    : std::true_type
+{
+};
+
+template <class ParticleType>
+auto getTemperatureSlice( ParticleType& particles )
+{
+    if constexpr ( has_slice_temperature<ParticleType>::value )
+        return particles.sliceTemperature();
+    else
+        return Kokkos::View<double*, typename ParticleType::memory_space>();
+}
+
 template <class ExecSpace, class NeighborListType, class ModelType,
           class VolumeSliceType>
 void updatePointPlasticStrain( ExecSpace exec_space,
@@ -434,6 +469,8 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
             auto eps_p_out = particles.slicePlasticStrain();
             auto eps_p_dot_out = particles.slicePlasticStrainRate();
             auto sigma_y_out = particles.sliceYieldStress();
+            auto rho = particles.sliceDensity();
+            auto temp_out = getTemperatureSlice( particles );
             auto model = _model;
             Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
                                                     particles.localOffset() );
@@ -446,6 +483,26 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
                     eps_p_dot_out( i ) =
                         model.model1.pointPlasticStrainRate( i );
                     sigma_y_out( i ) = model.model1.pointYieldStress( i );
+                    if constexpr ( has_point_adiabatic_temperature<
+                                       decltype( model.model1 )>::value )
+                    {
+                        if ( model.model1.cp_adiabatic > 0.0 &&
+                             model.model1.dt > 0.0 && rho( i ) > 0.0 )
+                        {
+                            const double dT =
+                                model.model1.taylor_quinney * sigma_y_out( i ) *
+                                eps_p_dot_out( i ) * model.model1.dt /
+                                ( rho( i ) * model.model1.cp_adiabatic );
+                            if ( dT > 0.0 )
+                            {
+                                model.model1.pointAdiabaticTemperature()( i ) +=
+                                    dT;
+                                if constexpr ( has_slice_temperature<
+                                                   ParticleType>::value )
+                                    temp_out( i ) += dT;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -453,6 +510,26 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
                     eps_p_dot_out( i ) =
                         model.model2.pointPlasticStrainRate( i );
                     sigma_y_out( i ) = model.model2.pointYieldStress( i );
+                    if constexpr ( has_point_adiabatic_temperature<
+                                       decltype( model.model2 )>::value )
+                    {
+                        if ( model.model2.cp_adiabatic > 0.0 &&
+                             model.model2.dt > 0.0 && rho( i ) > 0.0 )
+                        {
+                            const double dT =
+                                model.model2.taylor_quinney * sigma_y_out( i ) *
+                                eps_p_dot_out( i ) * model.model2.dt /
+                                ( rho( i ) * model.model2.cp_adiabatic );
+                            if ( dT > 0.0 )
+                            {
+                                model.model2.pointAdiabaticTemperature()( i ) +=
+                                    dT;
+                                if constexpr ( has_slice_temperature<
+                                                   ParticleType>::value )
+                                    temp_out( i ) += dT;
+                            }
+                        }
+                    }
                 }
             };
             Kokkos::parallel_for( "CabanaPD::ForcePMB::outputPlasticStrainMulti",
@@ -464,6 +541,8 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
             auto eps_p_out = particles.slicePlasticStrain();
             auto eps_p_dot_out = particles.slicePlasticStrainRate();
             auto sigma_y_out = particles.sliceYieldStress();
+            auto rho = particles.sliceDensity();
+            auto temp_out = getTemperatureSlice( particles );
             auto model = _model;
             Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
                                                     particles.localOffset() );
@@ -472,6 +551,25 @@ class Force<MemorySpace, ModelType, PMB, NoFracture>
                 eps_p_out( i ) = model.pointPlasticStrain()( i );
                 eps_p_dot_out( i ) = model.pointPlasticStrainRate( i );
                 sigma_y_out( i ) = model.pointYieldStress( i );
+                if constexpr ( has_point_adiabatic_temperature<
+                                   decltype( model )>::value )
+                {
+                    if ( model.cp_adiabatic > 0.0 && model.dt > 0.0 &&
+                         rho( i ) > 0.0 )
+                    {
+                        const double dT =
+                            model.taylor_quinney * sigma_y_out( i ) *
+                            eps_p_dot_out( i ) * model.dt /
+                            ( rho( i ) * model.cp_adiabatic );
+                        if ( dT > 0.0 )
+                        {
+                            model.pointAdiabaticTemperature()( i ) += dT;
+                            if constexpr ( has_slice_temperature<
+                                               ParticleType>::value )
+                                temp_out( i ) += dT;
+                        }
+                    }
+                }
             };
             Kokkos::parallel_for(
                 "CabanaPD::ForcePMB::outputPlasticStrain", policy,
@@ -701,6 +799,8 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
             auto eps_p_out = particles.slicePlasticStrain();
             auto eps_p_dot_out = particles.slicePlasticStrainRate();
             auto sigma_y_out = particles.sliceYieldStress();
+            auto rho = particles.sliceDensity();
+            auto temp_out = getTemperatureSlice( particles );
             auto model = _model;
             Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
                                                     particles.localOffset() );
@@ -713,6 +813,26 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
                     eps_p_dot_out( i ) =
                         model.model1.pointPlasticStrainRate( i );
                     sigma_y_out( i ) = model.model1.pointYieldStress( i );
+                    if constexpr ( has_point_adiabatic_temperature<
+                                       decltype( model.model1 )>::value )
+                    {
+                        if ( model.model1.cp_adiabatic > 0.0 &&
+                             model.model1.dt > 0.0 && rho( i ) > 0.0 )
+                        {
+                            const double dT =
+                                model.model1.taylor_quinney * sigma_y_out( i ) *
+                                eps_p_dot_out( i ) * model.model1.dt /
+                                ( rho( i ) * model.model1.cp_adiabatic );
+                            if ( dT > 0.0 )
+                            {
+                                model.model1.pointAdiabaticTemperature()( i ) +=
+                                    dT;
+                                if constexpr ( has_slice_temperature<
+                                                   ParticleType>::value )
+                                    temp_out( i ) += dT;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -720,6 +840,26 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
                     eps_p_dot_out( i ) =
                         model.model2.pointPlasticStrainRate( i );
                     sigma_y_out( i ) = model.model2.pointYieldStress( i );
+                    if constexpr ( has_point_adiabatic_temperature<
+                                       decltype( model.model2 )>::value )
+                    {
+                        if ( model.model2.cp_adiabatic > 0.0 &&
+                             model.model2.dt > 0.0 && rho( i ) > 0.0 )
+                        {
+                            const double dT =
+                                model.model2.taylor_quinney * sigma_y_out( i ) *
+                                eps_p_dot_out( i ) * model.model2.dt /
+                                ( rho( i ) * model.model2.cp_adiabatic );
+                            if ( dT > 0.0 )
+                            {
+                                model.model2.pointAdiabaticTemperature()( i ) +=
+                                    dT;
+                                if constexpr ( has_slice_temperature<
+                                                   ParticleType>::value )
+                                    temp_out( i ) += dT;
+                            }
+                        }
+                    }
                 }
             };
             Kokkos::parallel_for(
@@ -732,6 +872,8 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
             auto eps_p_out = particles.slicePlasticStrain();
             auto eps_p_dot_out = particles.slicePlasticStrainRate();
             auto sigma_y_out = particles.sliceYieldStress();
+            auto rho = particles.sliceDensity();
+            auto temp_out = getTemperatureSlice( particles );
             auto model = _model;
             Kokkos::RangePolicy<exec_space> policy( particles.frozenOffset(),
                                                     particles.localOffset() );
@@ -740,6 +882,25 @@ class Force<MemorySpace, ModelType, PMB, Fracture>
                 eps_p_out( i ) = model.pointPlasticStrain()( i );
                 eps_p_dot_out( i ) = model.pointPlasticStrainRate( i );
                 sigma_y_out( i ) = model.pointYieldStress( i );
+                if constexpr ( has_point_adiabatic_temperature<
+                                   decltype( model )>::value )
+                {
+                    if ( model.cp_adiabatic > 0.0 && model.dt > 0.0 &&
+                         rho( i ) > 0.0 )
+                    {
+                        const double dT =
+                            model.taylor_quinney * sigma_y_out( i ) *
+                            eps_p_dot_out( i ) * model.dt /
+                            ( rho( i ) * model.cp_adiabatic );
+                        if ( dT > 0.0 )
+                        {
+                            model.pointAdiabaticTemperature()( i ) += dT;
+                            if constexpr ( has_slice_temperature<
+                                               ParticleType>::value )
+                                temp_out( i ) += dT;
+                        }
+                    }
+                }
             };
             Kokkos::parallel_for(
                 "CabanaPD::ForcePMB::outputPlasticStrainDamage", policy,
