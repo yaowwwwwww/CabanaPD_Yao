@@ -30,7 +30,12 @@ struct JohnsonCook
 };
 
 // Johnson-Cook plasticity for PMB:
-// sigma = (A + B*eps_p^n) * (1 + C*ln(epsdot/epsdot0)) * (1 - (T*)^m)
+// sigma = (A + B*eps_p^n) * rateFactor(epsdot) * (1 - (T*)^m)
+// rateFactor (piecewise):
+//   epsdot <= epsdot_u:
+//     1 + C1*ln(epsdot/epsdot0)
+//   epsdot > epsdot_u:
+//     1 + C1*ln(epsdot_u/epsdot0) + C2*ln(epsdot/epsdot_u)
 // T* = (T - T_ref) / (T_melt - T_ref), clamped to [0,1].
 template <class MemorySpace>
 struct BaseForceModelPMB<JohnsonCook, MemorySpace>
@@ -48,9 +53,11 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     double A;
     double B;
     double n;
-    // Rate term (framework only; not used yet).
-    double C;
+    // Rate term coefficients.
+    double C;   // C1
+    double C2;  // C2 (defaults to C1 when not provided)
     double eps_dot0;
+    double eps_dot_u; // critical strain-rate for piecewise split
     // Adiabatic heating parameters.
     double cp_adiabatic;
     double taylor_quinney;
@@ -74,14 +81,18 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
                        const double _taylor_quinney = 0.9,
                        const double _T_ref = 298.0,
                        const double _T_melt = 1356.0,
-                       const double _m_thermal = 1.09 )
+                       const double _m_thermal = 1.09,
+                       const double _C2 = -1.0,
+                       const double _eps_dot_u = -1.0 )
         : base_type( model, NoFracture{}, delta, _K )
         , base_plasticity_type()
         , A( _A )
         , B( _B )
         , n( _n )
         , C( _C )
+        , C2( _C2 >= 0.0 ? _C2 : _C )
         , eps_dot0( _eps_dot0 )
+        , eps_dot_u( _eps_dot_u )
         , cp_adiabatic( _cp_adiabatic )
         , taylor_quinney( _taylor_quinney )
         , T_ref( _T_ref )
@@ -102,7 +113,9 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         B = ( model1.B + model2.B ) / 2.0;
         n = ( model1.n + model2.n ) / 2.0;
         C = ( model1.C + model2.C ) / 2.0;
+        C2 = ( model1.C2 + model2.C2 ) / 2.0;
         eps_dot0 = ( model1.eps_dot0 + model2.eps_dot0 ) / 2.0;
+        eps_dot_u = ( model1.eps_dot_u + model2.eps_dot_u ) / 2.0;
         cp_adiabatic = ( model1.cp_adiabatic + model2.cp_adiabatic ) / 2.0;
         taylor_quinney =
             ( model1.taylor_quinney + model2.taylor_quinney ) / 2.0;
@@ -143,9 +156,24 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     {
         if ( C == 0.0 || eps_dot0 <= 0.0 )
             return 1.0;
-        const double ratio =
-            Kokkos::fmax( eps_p_dot, eps_dot0 ) / eps_dot0;
-        return 1.0 + C * Kokkos::log( ratio );
+
+        const double eps_eff = Kokkos::fmax( eps_p_dot, eps_dot0 );
+
+        // Legacy branch (or disabled piecewise split).
+        if ( eps_dot_u <= eps_dot0 )
+        {
+            const double ratio = eps_eff / eps_dot0;
+            return 1.0 + C * Kokkos::log( ratio );
+        }
+
+        // Piecewise JC rate law.
+        if ( eps_eff <= eps_dot_u )
+        {
+            return 1.0 + C * Kokkos::log( eps_eff / eps_dot0 );
+        }
+
+        return 1.0 + C * Kokkos::log( eps_dot_u / eps_dot0 ) +
+               C2 * Kokkos::log( eps_eff / eps_dot_u );
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -318,10 +346,12 @@ struct ForceModel<PMB, JohnsonCook, Fracture, TemperatureIndependent,
                 const double taylor_quinney = 0.9,
                 const double T_ref = 298.0,
                 const double T_melt = 1356.0,
-                const double m_thermal = 1.09 )
+                const double m_thermal = 1.09,
+                const double C2 = -1.0,
+                const double eps_dot_u = -1.0 )
         : base_type( model, mechanics, space, delta, K, A, B, n, C, eps_dot0,
                      sample_id, dt, cp_adiabatic, taylor_quinney, T_ref,
-                     T_melt, m_thermal )
+                     T_melt, m_thermal, C2, eps_dot_u )
         , base_fracture_type( delta, K, G0 )
         , base_temperature_type()
     {
@@ -455,7 +485,8 @@ ForceModel( ModelType, JohnsonCook, MemorySpace, const double delta,
             const double cp_adiabatic = 0.0,
             const double taylor_quinney = 0.9,
             const double T_ref = 298.0, const double T_melt = 1356.0,
-            const double m_thermal = 1.09 )
+            const double m_thermal = 1.09, const double C2 = -1.0,
+            const double eps_dot_u = -1.0 )
     -> ForceModel<ModelType, JohnsonCook, Fracture, TemperatureIndependent,
                   MemorySpace>;
 
