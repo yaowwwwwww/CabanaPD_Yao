@@ -1,0 +1,47 @@
+\section{Numerical Implementation}
+
+\subsection{Johnson--Cook Stress Evaluation}
+The reconstructed constitutive model is implemented through the Johnson--Cook force-model path in the impact solver. At each material point, the constitutive update requires the accumulated plastic strain $\varepsilon_p$, the instantaneous plastic strain rate $\dot{\varepsilon}_p$, and the adiabatic temperature rise. The low-rate branch evaluates the standard JC expression,
+\begin{equation}
+\sigma_{\mathrm{low}}=
+\left(A+B\varepsilon_p^n\right)
+\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
+\left(1-T^{*m_{\mathrm{th}}}\right),
+\end{equation}
+whenever $\dot{\varepsilon}_p \le \dot{\varepsilon}^{\mathrm{eff}}_c$. The high-rate branch is evaluated in two steps. First, the low-rate JC branch is continued as the baseline contribution,
+\begin{equation}
+\sigma_{\mathrm{JC,low}}=
+\left(A+B\varepsilon_p^n\right)
+\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
+\left(1-T^{*m_{\mathrm{th}}}\right),
+\end{equation}
+and second, the drag increment is added according to Eq.~\eqref{eq:drag_substituted}. Thus the implemented high-rate branch is
+\begin{equation}
+\sigma_{\mathrm{high}} = \sigma_{\mathrm{JC,low}} + \sigma_{\mathrm{drag}},
+\end{equation}
+which guarantees that the transition from the low-rate branch remains continuous because the logarithmic drag increment vanishes at the transition threshold.
+
+This specific form reflects a conclusion reached repeatedly during model development: the high-rate branch should not be written as a drag-only stress. If the drag term alone is used above the transition, the total flow stress can drop unphysically at the switching point because the drag increment is constructed to start from zero. The implemented form therefore keeps the ordinary JC contribution as the baseline stress and adds only the incremental drag contribution.
+
+\subsection{Discrete Plastic-Strain-Rate and Adiabatic Heating Update}
+At the discrete level, the plastic strain rate is evaluated from the peridynamic kinematics and local plasticity update. This quantity is then used in three separate places within the constitutive evaluation:
+\begin{enumerate}[leftmargin=1.5em]
+\item the low-rate JC logarithmic rate term,
+\item the logarithmic over-threshold drag function in the high-rate branch,
+\item the adiabatic temperature update through the Taylor--Quinney relation.
+\end{enumerate}
+The temperature update is written in incremental form as
+\begin{equation}
+\Delta T = \frac{\beta_{\mathrm{TQ}}\,\sigma_{\mathrm{flow}}\,\Delta\varepsilon_p}{\rho c_p}.
+\end{equation}
+The updated temperature enters the constitutive law through the normalized temperature $T^*$ and through the modulus ratio $G(T)/G_0$. This creates a direct thermomechanical coupling between plastic flow, heat generation, and drag-controlled strengthening.
+
+The implementation also preserves the conceptual separation established in the constitutive derivation. The quantity $c_{T0}$ is used only as the fixed velocity scale needed to define the microscopic transition-rate estimate, while $G(T)$ is used only as the temperature-dependent amplitude factor in the drag term. This avoids enforcing an artificial temperature dependence on the sound-speed scale inside the constitutive closure.
+
+\subsection{Calibration Strategy}
+The final constitutive law contains a clear separation between fixed material scales and calibrated closure parameters. The quantities $b$, $c_{T0}$, $G_0$, $\rho$, $c_p$, and the low-rate JC parameters are treated as material inputs. The bridge factor $\Lambda_{\mathrm{ph}}$ is set from the discretization-based area scaling in Eq.~\eqref{eq:Lambda_ph_scale_ratio}. The remaining drag parameters then play distinct roles:
+\begin{itemize}[leftmargin=1.5em]
+\item $K_0$ controls the overall magnitude of the drag increment,
+\item $a$ controls how strongly the drag amplitude follows the thermal degradation of the shear modulus.
+\end{itemize}
+This separation was one of the key practical requirements identified during the development of the model: the drag branch must be simple enough to calibrate against high-rate impact data without obscuring the interpretation of the low-rate JC parameters.

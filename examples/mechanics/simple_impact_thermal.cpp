@@ -106,6 +106,18 @@ void coldspray_thermal( const std::string filename )
     double chi_tq = 0.9;
     if ( inputs.contains( "taylor_quinney" ) )
         chi_tq = inputs["taylor_quinney"];
+    double drag_K0 = inputs.contains( "drag_K0" )
+                         ? inputs["drag_K0"][0].get<double>()
+                         : 0.0;
+    double drag_m = inputs.contains( "drag_m" )
+                        ? inputs["drag_m"][0].get<double>()
+                        : 0.1;
+    double drag_a = inputs.contains( "drag_a" )
+                        ? inputs["drag_a"][0].get<double>()
+                        : 1.0;
+    double drag_beta_G = inputs.contains( "drag_beta_G" )
+                             ? inputs["drag_beta_G"][0].get<double>()
+                             : 0.9;
     double dt = inputs["timestep"];
    
     // ====================================================
@@ -228,14 +240,18 @@ void coldspray_thermal( const std::string filename )
                                              A_Al, B_Al, n_Al, C_Al,
                                              epsdot0_Al, sample_pid, dt,
                                              cp_Al, chi_tq, temp0_Al, Tm_Al,
-                                             m_Al, C2_Al, epsdot_u_Al );
+                                             m_Al, C2_Al, epsdot_u_Al,
+                                             drag_K0, drag_m, drag_a,
+                                             drag_beta_G, G_Al );
 
         CabanaPD::ForceModel force_model_Cu( model_type{}, mechanics_type{},
                                              memory_space{}, delta, K_Cu, G0_Cu,
                                              A_Cu, B_Cu, n_Cu, C_Cu,
                                              epsdot0_Cu, -1, dt, cp_Cu,
                                              chi_tq, temp0_Cu, Tm_Cu, m_Cu,
-                                             C2_Cu, epsdot_u_Cu );
+                                             C2_Cu, epsdot_u_Cu, drag_K0,
+                                             drag_m, drag_a, drag_beta_G,
+                                             G_Cu );
 
         // Use contact radius and extension relative to particle spacing.
         double r_c = inputs["contact_horizon_factor"];
@@ -381,7 +397,9 @@ void coldspray_thermal( const std::string filename )
                                              A_Cu, B_Cu, n_Cu, C_Cu,
                                              epsdot0_Cu, -1, dt, cp_Cu,
                                              chi_tq, temp0_Cu, Tm_Cu, m_Cu,
-                                             C2_Cu, epsdot_u_Cu );
+                                             C2_Cu, epsdot_u_Cu, drag_K0,
+                                             drag_m, drag_a, drag_beta_G,
+                                             G_Cu );
 
         CabanaPD::Solver solver( inputs, particles, force_model_Cu );
         solver.init();

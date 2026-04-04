@@ -1,0 +1,57 @@
+\begin{thebibliography}{1}
+
+\bibitem{Blaschke2019PhononWind}
+D.~N. Blaschke, E.~Mottola, and D.~L. Preston.
+\newblock Dislocation drag from phonon wind in an isotropic crystal at large
+  velocities.
+\newblock {\em Philosophical Magazine}, 100(5):571--600, 2020.
+
+\bibitem{Chen2026Indentation}
+J.~Chen, G.~Luo, S.~Chen, et~al.
+\newblock Approximation of ultra-high strain rate stress-strain relationship
+  from spherical projectile impact indentation.
+\newblock {\em International Journal of Plasticity}, page 104656, 2026.
+
+\bibitem{Hassani2019}
+Mostafa Hassani et~al.
+\newblock Material hardness at strain rates beyond $10^6$ s$^{-1}$ via high
+  velocity microparticle impact indentation.
+\newblock {\em Acta Materialia}, 2019.
+
+\bibitem{JohnsonCook1983}
+G.~R. Johnson and W.~H. Cook.
+\newblock A constitutive model and data for metals subjected to large strains,
+  high strain rates, and high temperatures.
+\newblock In {\em Proceedings of the 7th International Symposium on
+  Ballistics}, pages 541--547, 1983.
+
+\bibitem{Orowan1940}
+E.~Orowan.
+\newblock Problems of plastic gliding.
+\newblock {\em Proceedings of the Physical Society}, 52(1):8--22, 1940.
+
+\bibitem{TaylorQuinney1934}
+G.~I. Taylor and H.~Quinney.
+\newblock The latent energy remaining in a metal after cold working.
+\newblock {\em Proceedings of the Royal Society of London. Series A},
+  143(849):307--326, 1934.
+
+\bibitem{Tiamiyu2021}
+A.~A. Tiamiyu, Y.~Sun, K.~A. Nelson, and C.~A. Schuh.
+\newblock Site-specific study of jetting, bonding, and local deformation during
+  high-velocity metallic microparticle impact.
+\newblock {\em Acta Materialia}, 202:159--169, 2021.
+
+\bibitem{Zhang2025Peridynamics}
+H.~Zhang, B.~Ren, S.~Yue, et~al.
+\newblock Numerical assessment of critical velocity and spray angle window for
+  single particle adhesion in cold spray using peridynamic simulations.
+\newblock {\em Journal of Thermal Spray Technology}, 2025.
+
+\bibitem{Rittel2019}
+A.~Zubelewicz.
+\newblock Century-long taylor--quinney interpretation of plasticity-induced
+  heating reexamined.
+\newblock {\em Scientific Reports}, 9:9088, 2019.
+
+\end{thebibliography}

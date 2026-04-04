@@ -108,18 +108,43 @@
     ],
     "unit": "1/s"
   },
-  "jc_epsdot_u": {
-    "value": [
-      680000.0,
-      680000.0
-    ],
-    "unit": "1/s"
-  },
-  "jc_m": {
-    "value": [
-      1.09,
-      1.09
-    ]
+    "jc_epsdot_u": {
+        "value": [
+            680000.0,
+            680000.0
+        ],
+        "unit": "1/s"
+    },
+    "drag_K0": {
+        "value": [
+            1.0e8,
+            1.0e8
+        ],
+        "unit": "Pa*s"
+    },
+    "drag_m": {
+        "value": [
+            0.1,
+            0.1
+        ]
+    },
+    "drag_a": {
+        "value": [
+            1.0,
+            1.0
+        ]
+    },
+    "drag_beta_G": {
+        "value": [
+            0.9,
+            0.9
+        ]
+    },
+    "jc_m": {
+        "value": [
+            1.09,
+            1.09
+        ]
   },
   "jc_Tmelt": {
     "value": [
@@ -157,7 +182,7 @@
     "unit": "J/(kg.K)"
   },
   "taylor_quinney": {
-    "value": 0.9
+    "value": 0
   },
   "reference_temperature": {
     "value": [

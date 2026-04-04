@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Compare tq effect / thermal-softening combinations.
-# For each selected parameter group, run M x tq combinations, then compare CoR/vout.
+# Old-style CabanaPD scan driver.
+# Keep the original single-driver structure and only inject the extra JSON
+# fields required by the current constitutive model.
 
 set -u
 set -o pipefail
@@ -15,14 +16,24 @@ BASE_DIR="${ROOT_DIR}/build"
 RUN_TAG_BASE="${RUN_TAG_BASE:-tq_effect_m0_archive_compare}"
 DATE_TAG="$(date +"%Y-%m-%d_%H-%M")"
 DATE_TAG_SHORT="$(date +"%Y%b%d-%H-%M")"
-RUNS_ROOT="${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}"
-SUMMARY_FILE="${RUNS_ROOT}/summary_cor_hmax_recomputed_${DATE_TAG_SHORT}.txt"
+RUNS_ROOT_DEFAULT="${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}"
+RUNS_ROOT="${RUNS_ROOT_OVERRIDE:-${RUNS_ROOT_DEFAULT}}"
+SUMMARY_FILE_DEFAULT="${RUNS_ROOT}/summary_cor_hmax_recomputed_${DATE_TAG_SHORT}.txt"
+SUMMARY_FILE="${SUMMARY_FILE_OVERRIDE:-${SUMMARY_FILE_DEFAULT}}"
 
 # Fixed mechanical settings for this validation.
 # Use list to scan M values (default: 0 and 1.09).
 JC_M_LIST_STR="${JC_M_LIST_STR:-0 1.09}"
 read -r -a JC_M_LIST <<< "${JC_M_LIST_STR}"
 JC_N_FIXED=0.31
+JC_C2_FIXED="${JC_C2_FIXED:-0.908}"
+JC_EPSDOT_U_FIXED="${JC_EPSDOT_U_FIXED:-680000.0}"
+DRAG_K0_FIXED="${DRAG_K0_FIXED:-0.0}"
+DRAG_K0_LIST_STR="${DRAG_K0_LIST_STR:-${DRAG_K0_FIXED}}"
+read -r -a DRAG_K0_LIST <<< "${DRAG_K0_LIST_STR}"
+DRAG_M_FIXED="${DRAG_M_FIXED:-0.008}"
+DRAG_A_FIXED="${DRAG_A_FIXED:-1.0}"
+DRAG_BETA_G_FIXED="${DRAG_BETA_G_FIXED:-0.9}"
 CZM_SCALE_FIXED=0
 CZM_DECAY_FIXED=1.0
 CZM_YIELD_FIXED=0.05
@@ -74,13 +85,27 @@ clear_staging_outputs() {
   rm -f "${BASE_DIR}"/*.silo "${BASE_DIR}"/*.csv 2>/dev/null || true
 }
 
+write_case_state() {
+  local case_dir="$1"
+  local state="$2"
+  local extra="${3:-}"
+  {
+    printf "timestamp=%s\n" "$(date +"%F %T")"
+    printf "state=%s\n" "${state}"
+    if [ -n "${extra}" ]; then
+      printf "detail=%s\n" "${extra}"
+    fi
+  } > "${case_dir}/case_state.txt"
+}
+
 run_recompute() {
   local case_dir="$1"
   {
     echo "===== $(date +"%F %T") recompute: ${case_dir} ====="
     SUMMARY_FILE="${SUMMARY_FILE}" SINGLE_CASE_DIR="${case_dir}" \
       "${OCTAVE_CMD}" --no-gui --quiet --eval "source('${OCT_SCRIPT}'); fflush(stdout);"
-  } >> "${RUNS_ROOT}/octave_analysis_output.txt" 2>&1
+  } 2>&1 | tee -a "${RUNS_ROOT}/octave_analysis_output.txt" "${case_dir}/recompute.log"
+  return ${PIPESTATUS[0]}
 }
 
 case_exists() {
@@ -99,14 +124,20 @@ run_one_case() {
   local final_time="$8"
   local tq="$9"
   local jc_m="${10}"
-  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_tq_${tq}_ft_${final_time}"
+  local drag_k0="${11}"
+  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_K0_${drag_k0}_tq_${tq}_ft_${final_time}"
   local case_tag="run_${case_name}"
   local case_dir="${RUNS_ROOT}/${case_tag}"
+  local case_solver_log="${case_dir}/cabana_output.log"
+  local case_csv_log="${case_dir}/csv_conversion.log"
 
   if case_exists "${case_name}"; then
     echo "SKIP (already in summary): ${case_name}"
     return 0
   fi
+
+  mkdir -p "${case_dir}"
+  write_case_state "${case_dir}" "PREPARE" "${case_name}"
 
   echo "RUN: ${case_name}"
 
@@ -118,7 +149,13 @@ run_one_case() {
     --argjson jc_b      "${jc_b}" \
     --argjson jc_n      "${JC_N_FIXED}" \
     --argjson jc_c      "${jc_c}" \
+    --argjson jc_c2     "${JC_C2_FIXED}" \
+    --argjson epsdot_u  "${JC_EPSDOT_U_FIXED}" \
     --argjson jc_m      "${jc_m}" \
+    --argjson drag_k0   "${drag_k0}" \
+    --argjson drag_m    "${DRAG_M_FIXED}" \
+    --argjson drag_a    "${DRAG_A_FIXED}" \
+    --argjson drag_bg   "${DRAG_BETA_G_FIXED}" \
     --argjson tq        "${tq}" \
     --argjson final_t   "${final_time}" \
     --argjson out_freq  "${OUTPUT_FREQUENCY_FIXED}" \
@@ -133,7 +170,13 @@ run_one_case() {
     .jc_B.value                    = [ $jc_b, $jc_b ] |
     .jc_n.value                    = [ $jc_n, $jc_n ] |
     .jc_C.value                    = [ $jc_c, $jc_c ] |
+    .jc_C2.value                   = [ $jc_c2, $jc_c2 ] |
+    .jc_epsdot_u.value             = [ $epsdot_u, $epsdot_u ] |
     .jc_m.value                    = [ $jc_m, $jc_m ] |
+    .drag_K0.value                 = [ $drag_k0, $drag_k0 ] |
+    .drag_m.value                  = [ $drag_m, $drag_m ] |
+    .drag_a.value                  = [ $drag_a, $drag_a ] |
+    .drag_beta_G.value             = [ $drag_bg, $drag_bg ] |
     .taylor_quinney.value          = $tq        |
     .final_time.value              = $final_t   |
     .output_frequency.value        = $out_freq  |
@@ -142,29 +185,34 @@ run_one_case() {
     .CZM_degradation_rate.value    = $czm_decay
     ' "${INPUT_JSON_TEMPLATE}" > "${WORK_INPUT_JSON}"; then
     echo "WARN: jq failed for ${case_name}"
+    write_case_state "${case_dir}" "FAILED_JQ" "${case_name}"
     append_nan "${case_name}"
     return 0
   fi
+
+  cp "${WORK_INPUT_JSON}" "${case_dir}/input.json"
+  write_case_state "${case_dir}" "RUNNING" "${case_name}"
 
   cd "${BASE_DIR}" || exit 1
-  "${CABANAPD_EXE}" "${WORK_INPUT_JSON}" >> "${RUNS_ROOT}/cabana_output.log" 2>&1
-  local cabana_status=$?
+  "${CABANAPD_EXE}" "${WORK_INPUT_JSON}" 2>&1 | tee -a "${RUNS_ROOT}/cabana_output.log" "${case_solver_log}"
+  local cabana_status=${PIPESTATUS[0]}
   if [ "${cabana_status}" -ne 0 ]; then
     echo "WARN: CabanaPD failed (${cabana_status}) for ${case_name}"
+    write_case_state "${case_dir}" "FAILED_SOLVER" "exit_code=${cabana_status}"
     clear_staging_outputs
     append_nan "${case_name}"
     return 0
   fi
+  write_case_state "${case_dir}" "SOLVER_DONE" "${case_name}"
 
-  if ! pvpython "${PY_SCRIPT}" >/dev/null 2>&1; then
+  if ! pvpython "${PY_SCRIPT}" >"${case_csv_log}" 2>&1; then
     echo "WARN: CSV conversion failed for ${case_name}"
+    write_case_state "${case_dir}" "FAILED_CSV" "${case_name}"
     clear_staging_outputs
     append_nan "${case_name}"
     return 0
   fi
-
-  mkdir -p "${case_dir}"
-  cp "${WORK_INPUT_JSON}" "${case_dir}/input.json"
+  write_case_state "${case_dir}" "CSV_DONE" "${case_name}"
 
   shopt -s nullglob
   mv -f "${BASE_DIR}"/*.silo "${case_dir}/" 2>/dev/null || true
@@ -173,9 +221,11 @@ run_one_case() {
 
   if ! run_recompute "${case_dir}"; then
     echo "WARN: Octave recompute failed for ${case_name}"
+    write_case_state "${case_dir}" "FAILED_RECOMPUTE" "${case_name}"
     append_nan "${case_name}"
     return 0
   fi
+  write_case_state "${case_dir}" "RECOMPUTE_DONE" "${case_name}"
 
   return 0
 }
@@ -346,6 +396,7 @@ require_cmd jq
 require_cmd pvpython
 require_cmd awk
 require_cmd python3
+require_cmd tee
 
 if command -v octave-cli >/dev/null 2>&1; then
   OCTAVE_CMD="octave-cli"
@@ -374,18 +425,28 @@ if [ ! -f "${OCT_SCRIPT}" ]; then
 fi
 
 mkdir -p "${RUNS_ROOT}"
-{
-  printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
-    "${CASE_MATRIX[*]}" \
-    "${JC_M_LIST[*]}" \
-    "${TQ_LIST[*]}" \
-    "${JC_N_FIXED}" \
-    "${CZM_SCALE_FIXED}" "${CZM_YIELD_FIXED}" "${CZM_DECAY_FIXED}" \
-    "${OUTPUT_FREQUENCY_FIXED}" \
-    "${ALPHA_LIST_STR:-<default>}" \
-    "${BETA_LIST_STR:-<default>}"
-  printf "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n"
-} > "${SUMMARY_FILE}"
+if [ ! -s "${SUMMARY_FILE}" ]; then
+  {
+      printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; JC_C2_FIXED=%s; JC_EPSDOT_U_FIXED=%s; DRAG_K0_LIST=%s; DRAG_M_FIXED=%s; DRAG_A_FIXED=%s; DRAG_BETA_G_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
+        "${CASE_MATRIX[*]}" \
+        "${JC_M_LIST[*]}" \
+        "${TQ_LIST[*]}" \
+        "${JC_N_FIXED}" \
+        "${JC_C2_FIXED}" \
+        "${JC_EPSDOT_U_FIXED}" \
+        "${DRAG_K0_LIST[*]}" \
+        "${DRAG_M_FIXED}" \
+        "${DRAG_A_FIXED}" \
+        "${DRAG_BETA_G_FIXED}" \
+        "${CZM_SCALE_FIXED}" "${CZM_YIELD_FIXED}" "${CZM_DECAY_FIXED}" \
+        "${OUTPUT_FREQUENCY_FIXED}" \
+        "${ALPHA_LIST_STR:-<default>}" \
+      "${BETA_LIST_STR:-<default>}"
+    printf "# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)\n"
+  } > "${SUMMARY_FILE}"
+else
+  echo "Resume mode: keeping existing summary ${SUMMARY_FILE}"
+fi
 
 WORK_INPUT_JSON="${RUNS_ROOT}/_current_input.json"
 cleanup() {
@@ -424,8 +485,10 @@ for case_spec in "${CASE_MATRIX[@]}"; do
   for alpha_val in "${CURRENT_ALPHAS[@]}"; do
     for beta_val in "${CURRENT_BETAS[@]}"; do
       for jc_m in "${JC_M_LIST[@]}"; do
-        for tq in "${TQ_LIST[@]}"; do
-          run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}"
+        for drag_k0 in "${DRAG_K0_LIST[@]}"; do
+          for tq in "${TQ_LIST[@]}"; do
+            run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}" "${drag_k0}"
+          done
         done
       done
     done

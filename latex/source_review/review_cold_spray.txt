@@ -1,0 +1,487 @@
+﻿Literature Review
+
+
+Sandhu M, Tiamiyu A, Magliaro J. Simulation of rebound, flattening, and surface penetration regimes in high-velocity microparticle impacts using smoothed particle hydrodynamics[J]. 2026.
+
+
+Simulations of elliptical microparticle impacts quantified the influence of particle shape and orientation effects on the onset of bonding and post-impact flattened surface morphology.
+The dynamic flow strength of ductile metals tends to experience a significant upturn between
+242 104/s and 106/s.
+  
+
+
+
+Chen J, Luo G, Chen S, et al. Approximation of Ultra-high Strain Rate Stress-Strain Relationship from Spherical Projectile Impact Indentation[J]. International Journal of Plasticity, 2026: 104656.
+
+
+代表性应变：根据残余压痕的深度和半径确定 。   
+代表性应力：通过动态硬度转换得到，核心是引入了随压痕状态变化的动态压痕约束因子（Constraint Factor） 。   
+代表性应变率：定义了**平均压痕应变率（AISR）**来表征整个冲击过程 。
+
+
+约束因子的演化规律：在弹塑性阶段，约束因子随塑性程度增加而增大；进入完全塑性阶段后，由于惯性效应，约束因子会随着应变率的提高而逐渐减小 
+
+
+  
+
+The local strength-strain rate relationship within the range of 105 to 106 s-1 is presumed to be approximately linear due to the phonon drag mechanism 
+
+
+
+
+
+
+
+
+
+
+
+
+Z. Arabgol et al. Influence of thermal properties and temperature of substrate on the quality of cold-sprayed deposits
+
+
+The temperature and the thermal effusivity of the substrate control the instantaneous temperature of the top surface layer of the already deposited material, thus influencing the extent of particle bonding and the coating properties.  颗粒撞击时涂层表层的温度是冷喷涂中最相关的因素。表面温度决定了基材的整体变形能力
+
+
+  
+  
+
+Figure Profiles of the plastic strain on the meridian path along the particle surface (distance from the first point of contact),
+
+
+
+
+Binder K, Gottschalk J, Kollenda M, et al. Influence of impact angle and gas temperature on mechanical properties of titanium cold spray deposits[J]. Journal of thermal spray technology, 2011, 20(1): 234-242.
+ The isotropic fluid dynamic calculation of particle impact conditions demonstrates that particle temperatures and velocities are increased with process gas temperature. On the other hand, the critical velocities are decreased for higher temperatures.
+  
+
+Figure. Calculated Window of deposition for three different spherical particle sizes (diameter A = 10 μm, B = 25 μm, C = 45 μm) and nitrogen process gas temperatures between 600 and 1000 °C at 4 MPa of gas pressure. The lower line stands for the critical velocity, the upper red line for the erosion velocity
+
+
+
+
+Du et al. Exploring nonlinear strengthening in polycrystalline metallic materials by machine learning methods and heterostructure design
+
+
+Du et al. (2023) through the improvement of the linear strengthening relationship and the establishment of the transfer learning and deep residual convolutional neural network (CNN) this research explores the physical characteristics of the strengthening mode of polycrystalline metallic materials and proposes a new nonlinear yield strength prediction network and reliability verification.
+
+
+
+
+Wu L, Yao Y, Li L, et al. Smaller Grains Are Not Stronger: Microcrystalline Metals at Ultrahigh Strain Rates[J]. Physical Review Letters, 2026, 136(1): 016104.
+
+
+When subjected to extremely high strain rates, metals with smaller grain sizes become softer. precisely isolate the contribution of dislocation-phonon interactions to plastic deformation. Notably, we report that this mechanism is suppressed as grain size decreases in the microcrystalline regime. Consequently, metals with smaller grains do not benefit as much from this strengthening mechanism as their larger-grained counterparts
+
+
+
+
+Lei et al. High-strain-rate mechanical constitutive modeling with computational parameters
+
+
+
+
+P.D. Unnikrishnan et al. 2026. scripta materialia. Microstructural and mechanical response of cold-sprayed copper subjected to annealing.
+
+
+The fundamental impact of annealing on this complex, severely deformed microstructure is not yet fully understood. This study presents an in-depth investigation into the microstructural evolution and mechanical properties of cold-sprayed copper across a range of annealing conditions. Hardness, microstructure, and thermal analysis studies show that recrystallization peaks are below 250 °C, with a relatively lower activation energy of 71 kJ.mol-1, indicative of high stored energy. The mechanism of bimodal grain size formation upon annealing is discussed, which is a primary factor limiting ductility.
+
+
+
+
+Yasara Dharmadasa et al. 2026. Momentum-Transfer Framework Unifies High-Velocity Impact and Failure Across Materials, Geometries, and Scales. 
+Maximum momentum transfer occurs at the ballistic limit. A more reliable basis for comparison is the specific momentum capacity, their model through the momentum transfer and energy transfer—without imposing assumptions such as isolated system or prescribed dissipation 
+
+
+
+
+
+
+Tomographic assessment of peening for metallurgical bonding in cold spray. Veera Panova, Christopher A. Schuh. (2026) Surface and Coatings Technology. 
+
+
+Veera and Schuh employed microtomography to analyze the bonding evolution in the range from critical velocity Vcr to 1.4Vcr. They performed full 3D tomography of the particle stacks to characterize the bonding state at interface. They found that second impact increases the area of the particle-substrate interface, but there is no improvement in metallurgical bonding. In their point of view, not only area expansion but also stress-induced extrusion of metal at interface needs to occur to achieve metal-on-metal contact. They show that subsequent impact particles need to have ~70% more kinetic energy (particle size and velocity) to produce additional bonding. 
+
+
+
+
+Material hardness at strain rates beyond 106 s–1 via high velocity microparticle impact indentation Hassani, Mostafa et al. 2019.
+
+
+
+
+* Zhang H, Ren B, Yue S, et al. Numerical Assessment of Critical Velocity and Spray Angle Window for Single Particle Adhesion in Cold Spray Using Peridynamic Simulations[J]. Journal of Thermal Spray Technology, 2025: 1-15.
+An interfacial adhesion model was incorporated into the peridynamics framework to enable quantitative evaluation of particle–substrate adhesion in cold spray. Focusing on copper (Cu) as the representative material, the effects of impact velocity, spray angle, and preheating temperature were systematically investigated.
+
+
+* Tiamiyu A A, Sun Y, Nelson K A, et al. Site-specific study of jetting, bonding, and local deformation during high-velocity metallic microparticle impact[J]. Acta Materialia, 2021, 202: 159-169.
+Cu particles impacting a Cu substrate
+Beginning around 510 m/s, the particle still rebounds but its rebound velocity departs from the plastic power law, accompanied by localized jetting and increasingly intense substrate plasticity.
+At the critical adhesion velocity (~590 m/s), permanent sticking first appears with jetting only from the substrate, weak and asymmetric metallurgical bonding (~25%), and no jet formation from the particle itself.
+Slightly above vcr, substrate jetting grows stronger and becomes circumferential, and around 650 m/s the particle begins to jet as well, which markedly improves bonding from the periphery toward the pole.
+Near 770 m/s, both the particle and substrate exhibit full-rim jetting, coinciding with the maximum metallurgical bonding observed (~40%).
+At higher velocities the bonding decreases because the deepening crater forces particle rims to bend backward and peel, leaving only a velocity window of roughly 1.1–1.3 vcr where bonding is optimal.
+At ~920 m/s and above, the system transitions to hydrodynamic penetration, marked by substrate petalling and particle burial, a regime associated with strong erosive behavior in cold spray.
+
+
+* Lienhard, Jasper, et al. "Melting and ejecta produced by high velocity microparticle impacts of steel on tin." Journal of Applied Mechanics 88.11 (2021): 111005.
+ rigid impactors on soft substrates: use strong spherical stainless-steel particles to impact a relatively soft high purity tin substrate, allowing us to restrict plastic deformation and melting to the substrate material only and enabling quantification of material ejected from the substrate during impact.
+Characterize the surface morphology, depth, and volume of each impact crater. 
+  
+  
+  
+
+* Tiamiyu A A, Pang E L, Chen X, et al. Nanotwinning-assisted dynamic recrystallization at high strains and strain rates[J]. Nature materials, 2022, 21(7): 786-794.
+At sufficiently large strains, classical deformation mechanisms such as dislocation slip can accumulate structural changes that lead to grain refinement through the formation of new grains, a process known as dynamic recrystallization (DRX). when strain above 1.5 and Z below 10^15s-1, drx occurs.Twinning occurs at Z above  10^15s-1.  intersection of twinning and DRX?
+They present microstructural characterization results from representative impact sites with different levels of increasing velocity and strain: (1) rebounded particles, (2) lightly deformed adhered particles and (3) strongly deformed adhered particles. For cases with adhered particles, we delineate true strains at the particle top (εt), particle centre (εc) and near the interface (εi) (Table 1), along with strain rates and local temperature rises estimated at those locations.
+At low velocityies: Classical dislocation-based plastic deformation dominates near the top of the particle, whereas deformation twinning is seen near the centre of the particle. At the south pole of the particle, extensive nanotwinning and onset of partitioning of those nanotwins is observed. As strain increases:(1) first, nanotwins appear as the deformation mechanism transitions from slip to twinning; (2) the twins become more plastically deformed and filled with dislocations; (3) the dislocations rearrange to form dislocation walls that partition the lenticular twin into nano-sized elongated blocks bounded by twin boundaries vertically and low-angle grain boundaries horizontally; and (4) the twin boundaries of the blocks bulge outward to form hexagonally shaped nanograins that are laterally separated by HAGBs.首先，当变形机制从滑移转变为孪生时出现纳米孪生；（2）孪生变得更具塑性变形并充满位错；（3）位错重新排列形成位错墙，将透镜状孪生分成纳米尺寸的细长块，垂直方向由孪生边界和水平方向的小角度晶粒边界包围；（4）块的孪生边界向外凸出形成六边形纳米晶粒，横向由 HAGB 分隔。孪生通过简单地分割宿主晶粒来“细化”宿主晶粒；在这里，孪生本身通过位错塑性和重组被多边形化成新晶粒。将此过程称为“纳米孪生辅助动态再结晶”
+
+
+
+
+* Tiamiyu, Ahmed A., et al. "Heterogeneous microstructural evolution during hydrodynamic penetration of a high-velocity copper microparticle impacting copper." Materials Today 72 (2024): 71-86.
+They studied the Microparticle hydrodynamic penetration (HDP) at velocities above 900 m/s where HDP begins.The structural evolution processes observed include deformation twinning and multiple dislocation-mediated grain recrystallization mechanisms—geometric dynamic recrystallization (gDRX), discontinuous DRX (dDRX), and meta DRX (mDRX)
+
+
+
+
+* Panova V, Schuh C A. Towards a quantitative understanding of bonding in supersonic single particle impacts: A three-dimensional FIB-SEM exploration[J]. Acta Materialia, 2024, 276: 120105.
+direct measure of the so-called critical velocity (Vcr), or the minimum velocity required for particle adhesion, for a given system; for ∼17–21 µm Cu particles on a Cu substrate, we assess Vcr = 540 ± 5 m/s from the present data. With smaller particles, ∼10–14 µm in diameter [2,41,42], and yielded somewhat higher critical velocities (560–590 m/s)
+Panova and schuh (2024) believe that ‘bonding’, as a measurable outcome of the cold spray process, is typically hard to describe quantitatively now, they used FIB-SEM ( focused ion beam 聚焦离子束)approach which permits a detailed quantification of the total bonding area and all of its associated components. From onset at the “critical velocity” Vcr (where bonding is generally poor, ∼6 %) to its peak at around 1.3‧Vcr (where almost 90 % of the particle bonds). Further increase in the velocity to 1.5‧Vcr and beyond finds the onset of hydrodynamic penetration and a decrease in bonding. 
+A more mechanistic view of impact bonding can be provided by examination of single particle impacts on a substrate, such as by the so-called “wipe test” [[27], [28], [29], [30]]. In those experiments, a brief application via cold spray deposits a single layer of particles at or slightly above critical velocity. Individual splats can then be evaluated by, e.g., the modified ball bond shear test [31], or Micro-Combi scratch test to remove individual particles [32,33]. These methods rely on particle removal by shear force; an evaluation of the fracture surface provides semi-quantitative or comparative data on bonding at the single particle level. Although the deposited particles in a layer are assumed to have homogeneous properties, individual particles again have unknown specific histories (velocity, temperature, size at impact) so it is hard to infer optimal bonding conditions from such experiments.
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* A.A. Tiamiyu, Y. Sun, K.A. Nelson, C.A. Schuh. Site-specific study of jetting, bonding, and local deformation during high-velocity metallic microparticle impact. Acta Mater 2021
+
+
+Tiamiyu et al. used focused ion beam (FIB) to look at cross-sections of individual copper particles on a copper substrate and estimated an average morphology of the impact site when projecting the bonding observed from a single cross-section (in 2D) to the entire contact surface (in 3D). They were able to quantitatively document an increase in bonded interface area starting from zero below Vcr, to a maximum at a velocity about 1.3 times higher, followed by the gradual onset of a hydrodynamic penetration (HDP) regime in which bonding declined. however, it is still only semi-quantitative because it addressed only 2D sections of an inherently 3D problem.
+Tiamiyu 等人用 LIPIT（微粒撞击实验）让单个铜粒子撞击铜基底，然后用 FIB（聚焦离子束）切片 观察截面。 他们测量了粒子与基底之间实际粘合的面积占整个接触界面的比例。 这个比例被称作 “bonding fraction”（结合面积分数）。他们发现粒子下方的接触界面有 100 μm²，其中只有 40 μm² 真正发生了冶金键合（fusion / metallic bonding），  bonding fraction = 40 %。这与实际不符。而在真正的冷喷涂层中，粘合度远高得多（接近完全结合）。
+  
+
+对于 Cu 基底上约 17–21 µm 的 Cu 粒子，我们根据现有数据评估 V cr = 540 ± 5 m/s
+10–14 µm ，临界速度 (560–590 m/s)，我的实验是12um的直径。
+
+
+Particle Radius (µm)
+	Contact Radius R0 (µm)
+	Crater depth h (µm)
+	The particle experiences high deformation and strain along the sides of the interface, causing it to peel away from crater walls. This peeling is likely contributing to the worsening in bonding at high velocities.（随着速度的增加，撞击坑不断加深，导致粒子下沉至撞击坑底部。似乎在 ∼1.4‧V cr以上，粒子位于撞击坑底部，并且撞击坑壁足够高，会导致粒子的几何形状发生显著变化。粒子沿界面侧面经历较大的变形和应变，导致其从撞击坑壁上剥离。这种剥离可能是造成高速下键合恶化的原因之一）。  
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Reiser A, Schuh C A. Microscale Metal Additive Manufacturing by Solid‐State Impact Bonding of Shaped Thin Films[J]. Small, 2025, 21(36): 2503014.
+Reiser presented an approach which reliably deposits micrometer-thick, solid layers into microscale 3D stacks based on kinetic impact-bonding for micro additive manufacturing, 
+Microscale additive manufacturing is an enabling concept in micro-engineering but faces a range of technological challenges: existing methods either offer high materials performance at a noncompetitive low throughput, or low materials quality paired with high throughput. Here we for the first time demonstrate that solid-state bonding uniquely optimizes all these interests simultaneously, and enables exceptionally low materials porosity, foregoes any challenging thermal processing steps, and offers potential for the highest throughput by replacing the serial deposition of voxels with the transfer of pre-shaped layers. Thus, the strategy of kinetic impact-bonding has immense potential in microscale manufacturing for applications that demand high-performance metals deposited at competitive rates.
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* M. Hassani, D. Veysset, K.A. Nelson, C.A. Schuh. Material hardness at strain rates beyond 106 s−1 via high velocity microparticle impact indentation. Scr. Mater., 177 (2020), pp. 198-202
+Hassani et al. proposed the method to approximate the dynamic hardness, Hd, of the copper substrates from each individual experiment. Briefly, the inbound and outbound velocities are used to compute the kinetic energy dissipated in the substrate, E, and normalize it by the crater volume, Vc:
+  
+
+ρ and Vp are respectively the density and volume of the particle
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Reiser A, Schuh C A. Towards an understanding of particle-scale flaws and microstructure evolution in cold spray via accumulation of single particle impacts[J]. Acta Materialia, 2024, 281: 120301.
+Reiser and Schuh (2024) studied the many-particle process that forms a cold spray coating in a single-particle view. The critical velocity of a gold particle (diameter 16+-4 um) is about 250 m/s. A 3D deposit is formed upon the continued repetition of this process . They concluded the existence of a velocity for successful accumulation of a coating that is higher than the critical velocity for adhesion of single particles.
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Wu C, Li L, Thornton C. Rebound behaviour of spheres for plastic impacts[J]. International journal of impact engineering, 2003, 28(9): 929-946.
+Wu 等发现，在弹塑性阶段，恢复系数与V i −1/4（其中V i为冲击速度）成正比，并确​​定了区分弹塑性阶段和全塑性阶段的临界冲击速度（V*），其公式为V i / V y（其中V y为屈服速度）和E* /Y（其中E * 为代表性杨氏模量，Y为屈服强度）。超过该转变点后，他们发现恢复系数与 [( V i / V y )/( E* / Y )] −1/2成正比。
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Dowding I, Schuh C A. Metals strengthen with increasing temperature at extreme strain rates[J]. Nature, 2024, 630(8015): 91-95.
+Dowding and Schuh (2024) discovered that metals can strengthen rather than soften with increasing temperature at strain rates above 10⁶ s⁻¹, differ from traditional constitutive models which assume monotonic thermal softening. 
+The strength of materials depends on the rate at which they are tested, as defects move.When the deformation strain rate increases, more strengthening mechanisms become active.
+高应变率变形：位错主导、连续波传播、可测应变率 10^3\s–10^7\s。
+冲击加载：压缩波主导、不连续波前、应力超声速传播。<10^3\s
+在极高应变率下，材料的变形机制从“位错通过热激活移动”变成了“位错以弹道式高速运动”，后者受到声子拖曳的限制（Drage mechanism）。由于温度升高会增强声子拖曳力，使位错更难运动。Ballistic dislocation transport is not rate limited.
+Dynamic yield strengths can be extracted from the rebound behaviour of the impactor over a range of velocities and dynamic hardness values can be measured on the basis of post-impact measurements of the impact crater sizes.
+Tabor, D. A simple theory of static and dynamic hardness. Proc. R. Soc. Lond. A. Math. Phys. Sci. 192, 247–274 (1948).
+ a higher strength of copper at higher temperatures, crater diameter and depth decrease with test temperature at the same impact velocity, because crater volume is inversely proportional to strength
+the increased rebound and the decreased crater volume: Higher strength of copper at higher temperatures, induced the aggressive rebound. Crater diameter and depth decrease with test temperature at the same impact velocity.
+  
+
+ε˙∼6×106 to 4×107 s−1​
+Hassani, M., Veysset, D., Nelson, K. A. & Schuh, C. A. Material hardness at strain rates beyond 106 s−1 via high velocity microparticle impact indentation. Scr. Mater. 177, 198–20
+Sakino, K. Transition in rate controlling mechanism of FFC metals at very high strain rates and high temperatures. J. Phys. IV Fr. 10, 57–62 (2000).
+Dynamic mechanical behavior of multilayer graphene via supersonic projectile penetration.
+  
+
+High-strain-rate micromechanical impact experiments were carried out using laser-induced particle impact tests, detailed in Methods. Spherical alumina microparticles, roughly 12.5 ± 1 μm in size, were chosen as impactors onto copper substrates owing to their much higher hardness (static hardness 15.7 versus 0.56 GPa for annealed Cu)34,35, to isolate the plasticity to the substrate. Figure 1 shows some typical results, in which we track by high-speed camera the inbound and rebound trajectories of alumina particles as they impact the copper substrate. However, these three experiments were conducted at 20, 100 and 177 °C and, as the test temperature is increased, the particle rebounds more aggressively, as shown by the increasing rebound trajectories, as well as the differences in height in the inset black and white photographs of the particles 600 ns after impact. These results indicate a higher strength of copper at higher temperatures, as more kinetic energy is carried away in the rebound; this is a first signature of anomalous temperature dependence of strength at high rates.the crater diameter and depth decrease with test temperature at the same impact velocity.  Because crater volume is inversely proportional to strength36, the crater images in Fig. 1 independently confirm that copper is hardening at higher temperatures under these extreme impact conditions.
+The two independent signatures of thermal hardening in Fig. 1—the increased rebound and the decreased crater volume—are both amenable to quantitative analysis to extract strength measures and, in what follows, we take each of these in turn. We first look at a larger set of rebound data for many more impact experiments. The rebound response is quantified using the coefficient of restitution, CoR = vr/vi, the ratio of the rebound and impact velocities. CoR as a function of the impact velocity in double-logarithmic format. For a given test temperature, higher impact velocities lead to lesser rebounds, as more energy is dissipated in plasticity of the substrate. In fact, the parabolic scaling in Fig. 2a is the expected form for plasticity, as developed by Wu et al.30,31, who showed that ideally plastic impacts follow the power-law relation:
+  
+
+ Not only do the data in Fig. 2a conform to the scaling of equation (1) but the equation is fully predictive with the fitting of a single parameter, namely the dynamic yield strength Yd, which is an average strength measure describing the complex deformation of the substrate over the entire duration of an impact.
+One advantage of this assessment of strength is that it averages out local heterogeneities in the microstructure (including grain boundaries, crystal orientation effects and defect structures) over the entire range of impact velocities; these effects contribute to the scatter in the data and provide a quantitative measurement uncertainty as a standard deviation of the data’s departure from the trendline in Fig. 2a.
+
+
+Indeed, the model suggests a critical strain rate near 105 s−1, at which Qapp changes sign from positive to negative,
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Lucas T J, Schuh C A. Measuring the strength of ductile microparticles at extreme strain rates[J]. Scripta Materialia, 2025, 257: 116446.
+Lucas（2025） aim at the extraction of a dynamic yield strength of the particles used( soft particle and hard substrate). 铜粒在 200 m/s 以下的速度区间内，CoR 与冲击速度呈幂律衰减关系，符合 Wu 模型预言,微粒级别的高应变率力学表征提供了实验可行性和理论一致性桥梁，把“软撞硬”的撞击动力学纳入材料强度测量体系.
+  
+
+
+
+Work by Lucas et al. [2024] showed that the Preston-Tonks-Wallace (PTW) plasticity model and Mie-Gruneisen equation of state have a reasonable match to impact experiments on annealed copper.  The PTW model encompasses strain, strain rate, and temperature effects in deformation, adding realistic physical complexity to the EPP assumption of the Wu power law analysis above.  it validates the extension of that power-law beyond the nominal limit of Eq. (4) out to about 200 m/s.
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Liu Y, Sun Y, Nelson K A, et al. A model for oblique impacts on material surfaces[J]. Acta Materialia, 2024, 281: 120405.
+Liu et al. (2024) used FEM to predict the normal and tangential coefficient of restitution in oblique impacts for hard, elastic spheres impacting an elastic-perfectly plastic material surface（0° to 45°）The normal coefficient of restitution follows power-laws with respect to normalized values of the impact velocity. Interestingly, the tangential coefficient of restitution follows a linear relationship with impact velocity. 
+对于每个撞击角度，CoR数据最初都符合特定的幂律，但随着撞击速度的增加而偏离该幂律行为，接近键合转变
+  
+
+铝颗粒以 0°、25° 和 40° 撞击铝基材时，LIPIT CoR 数据与撞击速度的关系；(b) 正向撞击时的 CoR 数据以双对数方式绘制，拟合值为 0.7 [( V ni / V ny )/( E* / Y )] −1/2，得出有效动态屈服强度为 164 MPa；在撞击角度为 (c) 25° 和 (d) 40° 时，从 LIPIT 和所提出的模型获得的 CoR 数据比较。
+—-----------------------------------------------------------------------------------------------------------------------------------------
+* Kumar, P., Cook, D.H., Wang, W., et al. (2025). Fracture behavior of high-entropy alloys: Resistance to fracture from strain hardening and softening. Matter, 8(4).
+Kumar et al.( 2025) demonstrated that fcc alloy exhibits outstanding toughness due to continuous strain hardening that delays localization, while the bcc alloy attains comparable resistance through strain softening that disperses damage across multiple slip systems. 
+—-----------------------------------------------------------------------------------------------------------------------------------------
+Lucas, T.J., & Schuh, C.A. (2025). A single particle impact study on the effects of substrate strength and ductility on adhesion in cold spray. International Journal of Mechanical Sciences, 110676.    
+The important thing is the substrate is harder, not the projectile. So the harder substrate makes the projectile deform more and jetting more. The crater is more significant in volume and height. The particle impacting the harder substrate has clearly undergone significantly more flattening and has a far deeper crater depth  leading to a more pronounced crater rim and jet formation.
+The trends in Fig. 2a clearly shows that, for a given impact velocity, particles deform more upon striking the harder substrate。the hard substrate partitions more of the deformation to the particle than does the soft substrate induced more contact area and more jetting, such caused low adhesive velocity.
+Next, looking at the open crater volumes, we again see that both substrates have deeper craters at higher velocities, and again the craters are larger on the hard substrate than the soft one. This result is surprising, as a larger volume indentation is generally associated with a softer material, at least in the case where the indenter is undeforming. This is not a result of compressive residual stress in the harder, rolled substrate, which would tend to lower indentation volumes. In the present case, a key difference between the substrates
+  
+
+Lucas and Schuh (2025) studied the single particle impact effects on substrates with different strength and ductility and found that the critical adhesion velocity does not always increase with material strength as previously predicted, showing unexpectedly higher bonding thresholds for softer substrates. This contradiction indicates that deformation during high-velocity impact depends not only on bulk strength but also on microstructural factors such as strain hardening capacity and local deformation mechanisms. Higher degree of flattening and therefore inelastic energy dissipation being partitioned to the particle when the substrate is harder. The harder plate more strongly resists plastic burrowing, forcing the particle to flow laterally, lateral flow increases the contact area and imparts its inertia on the surrounding substrate material,
+The higher strain hardening rate of the softer plate should have considerably more resistance to localization. It means the deformation is continuous.
+
+
+Show the rebound and bonding behavior resulting from the impacts of copper particles on the soft (black squares) and hard (red circles) copper substrates.
+
+
+It would be most useful to only change the microstructure and hardness as the independent variable, and that is our goal in the present paper.
+
+
+Conditions under which material strength and microstructure are critical to mechanical response. 
+
+
+A previous publication [16], which concluded that the quasi-static and dynamic yield strengths of the full-hard plate are about 66 % higher than the annealed plate. Our discussion in what follows will compare these two materials in detail, and for brevity we will refer to them as the “soft” and “hard” specimens.
+
+
+Cold work is shown to significantly influence bonding in cold spray. There is competition between strength and ductility to induce particle bonding. 
+Low ductility promotes localization and leads to lower critical adhesion velocity.  
+（harder → low ductility→ lower strain hardening capacity→lower critical adhesion velocity）
+shows jet formation earlier, jets, help achieve local metal-on-metal contact and bonding, is the transition from rebounding to particle adhesion.
+The strain rates in cold spray are very high (∼10(6-8) s-1)
+The pressures produced by cold spray particle impacts are only on the order of the material hardness (∼ GPa)
+For copper-on-copper impacts, jet phenomenon typically first occurs in the range of 540–590 m/s
+At the level of full cold spray, copper is known to have a deposition window that spans about 300–650 m/s
+They explore the role of microstructure and strength on the impact adhesion by critical adhesion velocity, using the characterization of strain, jetting and localization。
+* Low ductility promotes localization and leads to lower critical adhesion velocity.
+  
+  
+
+
+
+
+
+冷加工（cold working）指的是在材料低于再结晶温度时对金属进行的塑性变形（比如轧制、拉伸、锻造），结果是：
+* 晶格里会积累大量位错和缺陷；
+* 金属晶粒被拉长、变形；材料硬化（强度↑，延展性↓）；
+* 存在高的残余应力和高的储存能量。
+
+
+在冷喷沉积过程中，这些“冷加工过的”金属特性会对沉积颗粒与基底的结合产生很大影响：
+* 位错和缺陷让材料更容易在颗粒撞击时发生局部塑性变形；
+* 提高了局部应变硬化速率，促进冶金结合；
+* 但如果冷加工过度，基底或颗粒可能太硬，反而不利于良好嵌合。
+
+
+
+
+* Lucas, Tyler J., Alison M. Saunders, and Christopher A. Schuh. "Microstructure effects on high velocity microparticle impacts of copper." Acta Materialia 280 (2024): 120329.
+  
+
+Lucas et al. (2024) studied the effect of different amounts of cold work(seperate yield strength and keep other E density thermal same) in microparticle impacts to better isolate microstructural influences on the mechanical properties of metals in high strain rate conditions.  
+  
+
+This work  quantitatively studies high velocity impacts of small, rigid alumina microspheres on flat copper substrates with varying amounts of initial cold work in the weak shock regime, but at very high strain rates up to ∼107s−1. 
+They showed initial microstructure condition can have significant influence on dynamical mechanical properties in this range:
+* Prior work hardening of the copper substrate leads to increased rebounding of the microparticles (i.e., less plastic dissipation in the impact) as well as smaller craters.
+* Softer tempers tended to have much lower rebound velocities, and produce much larger impact craters.This corresponds to lower dynamic strength and hardness, respectively.
+
+
+  
+
+  
+
+  
+
+
+
+
+
+* Yuchen Sun al. 2020.The Transition From Rebound to Bonding in High-Velocity Metallic Microparticle Impacts: Jetting-Associated Power-Law Divergence Free
+a power-law behavior well-predicted on the basis of elastic-perfectly plastic analysis and can be captured well with a single value for the dynamic strength that subsumes many details not explicitly modeled (rate and hardening effects and adiabatic heating). However, the rebound behavior diverges from the power-law at higher impact velocities approaching bonding, where jetting sets on.
+  
+
+Adiabatic shear instability is not necessary for adhesion in cold spray-2018
+Material build-up in cold spray revolves around the notion of impact-induced bonding of microparticles at impact velocities that exceed a threshold, referred to as the “critical velocity” [[1], [2], [3], [4]]. Adiabatic shear instability [[5], [6], [7]], oxide layer break up [8], localized melting [[9], [10], [11], [12]], diffusion [13], interface amorphization [14], and mechanical interlocking [15] are among the variety of mechanisms put forth to explain bonding.
+
+
+Through in-situ observations we confirmed that impact-induced bonding is indeed closely related to jetting, and localized fragmentation; as envisioned above, the extreme strain associated with jetting is perceived to produce a clean intimate contact amenable to metallic bonding at the interface.
+
+
+The finite element model suggests that pressure release is the origin of jetting in microparticle impact. Increasing impact velocity results in higher impact-induced pressures which in turn results in higher reflected tensions. When the transient state of hydrodynamic tension exceeds the material dynamic strength, a process of spall occurs. Given the geometry at the contact, this would be observed as an unstable ejection of material in the form of a jet and subsequent fragments.  They used a Eulerian FEM simulation.
+
+
+  
+
+
+
+
+
+* Mostafa Hassaniet al. 2020. Material hardness at strain rates beyond 106 s−1 via high velocity microparticle impact indentation
+First, by comparing single-particle experiments of alumina particles impacting a copper substrate with a model for elastic particle impacts on an elastic-perfectly plastic substrate, we were able to determine an “effective” dynamic yield strength of copper, spanning a large range of velocities, and subsuming a great deal of deformation physics, including hardening and adiabatic heating effects. This dynamic yield strength, in turn, can be used to predict with very high accuracy the rebound behavior for impacts of copper on copper.
+They proposed an indentation-based approach that enables measurement of material hardness at strain rates beyond 106 s−1.They did not observe indications of plastic deformation in the rebounding alumina particles, e.g., significant deviation from sphericity, in real time observations, nor did they observe fracture, melting, or erosion of the substrate materials in SEM micrographs. Therefore, they proceed confident in the assumption that plastic deformation of the substrate is the far dominant operative mechanism that dissipated the energy of the incoming particles. Of course, plasticity redistributes the dissipating energy through a combination of microstructural evolution and heat generation.  
+The data from literature show that (i) iron is harder than copper, (ii) hardness increases with strain rate, and (iii) the strain rate sensitivity of hardness apparently increases beyond 103–104 s−1. This latter is due to the change of deformation mechanism from thermally activated dislocation motion to dislocation drag.
+  
+
+
+
+* Dowding I, Hassani M, Sun Y, et al. Particle size effects in metallic microparticle impact-bonding[J]. Acta Materialia, 2020, 194: 40-48.
+This study shows that an increase in particle size leads to an increase in the temperature of the jet formed at the interface of the particle and the substrate. This increased temperature locally decreases the spall strength of the material which, in turn, decreases the critical velocity for larger particles.
+
+
+* Jasper Lienhard et al. 2020. Surface oxide and hydroxide effects on aluminum microparticle impact bonding
+They studied how altering the passivating surface oxides with exposures to various levels of heat and humidity affect the cold spray critical adhesion velocity in the case of aluminum. 
+exposures to temperatures as high as 300 °C for up to 240 min in dry air, or to room-temperature with humidity levels as high as 50% for 4 days, have negligible effect on the surface oxide layers,and do not affect the critical adhesion velocity. In contrast, ambient-temperature exposure to 95% relative humidity levels for 4 days increases the critical adhesion velocity by more than 125 m/s, 
+* Hassani M, Veysset D, Sun Y, et al. Microparticle impact-bonding modes for mismatched metals: From co-deformation to splatting and penetration[J]. Acta Materialia, 2020, 199: 480-494.
+Nine mismatched impact pairs are summarized, three main impact-bonding modes with:
+1. Splatting: Impact-induced plastic strain is mostly accommodated by the particle.
+2. Co-deformation:Impact-induced plastic strain is substantially shared between both.
+3. Penetration: Accommodated by the substrate.
+They propose a ratio, 𝑅=(𝜌𝐶02𝑌𝑑)𝑝/(𝜌𝐶02𝑌𝑑)𝑠
+A ratio of R ≈ 1 corresponds to co-deformation, while significant flattening of the particle (splatting) and significant penetration occur for more deviant values of R < ½ and R > 2 respectively. 
+Hassani proposed an impact ratio based on the materials’ properties, which can successfully quantify the spectrum. Co-deformation is expected when the ratio is around unity, while much larger or smaller ratios give rise to penetration and splatting, respectively.
+Bonding mechanisms in cold spray are traditionally classified into metallurgical and mechanical
+Rebound, penetration, fragmentation, reaction, melting, bonding, jetting, splatting.
+Avoid phase transformation, thermal residual stress and distortion.
+  
+
+ 
+Principle: adhesion needs plastic work on both sides 
+So the key parameter is the hardness ratio: 
+Al particles impacting a Ni substrate, transition from rebound to bonding occurs at 1145±65 m/s,The degree of flattening of the particle and the azimuthal tearing at its edges are so severe.
+Turn to Al particles impacting a Cu substrate where, the transition from rebound to bonding occurs at 920±70 m/s. Cu is softer than both Ni and Ti
+Cu impact Cu,  560–590 
+Cu particles impacting Al substrates, transition from rebound to bonding occurs at 665±45 m/s
+Sn particles impacting a Cu substrate. A transition to significant particle fragmentation and material loss at velocities beyond ~400 m/s was observed. Sn is softer than copper.
+• Sn (Tin): 5–20 HV
+•  • Zn (Zinc): 30–60 HV
+• Al 6061-T6: ~95–110 HV
+• Al 2024-T3: ~120–150 HV
+• Al 7075-T6: ~150–175 HV
+• Cu (Copper, annealed–hard): 50–150 HV
+• Ag (Silver): 25–90 HV
+• Au (Gold): 20–30 HV (very soft!)
+• Ni (Nickel): 80–200 HV
+• Ti (Titanium, CP): 70–200 HV
+• W (Tungsten): 300–500 HV (extremely hard)
+
+
+
+
+* Tiamiyu A A, Schuh
+Particle
+	Substrate
+	Particle diameter (µm)
+	Dominant regime
+	Adhesion velocity (m/s)
+	Al
+	Ni
+	11±2
+	Splatting
+	1080–1210
+	Al
+	Ti
+	12±2
+	Splatting
+	1000–1110
+	Al
+	Cu
+	11±2
+	Splatting
+	855–990
+	Cu
+	Al
+	10±1
+	Penetration
+	625–710
+	Ti
+	Cu
+	13±2
+	Co-deformation
+	525–685
+	Cu
+	Ti
+	12±1
+	Co-deformation
+	765–845†
+	Cu
+	Cu
+	12±2
+	Co-deformation
+	560–590 [40]
+	Ni
+	Ni
+	11±2
+	Co-deformation
+	620–675 [40]
+	Ti
+	Ti
+	12±1
+	Co-deformation
+	680–810 [32]
+	Zn
+	Zn
+	12±2
+	Co-deformation
+	520–570 [40]
+	Au
+	Au
+	14±4
+	Co-deformation
+	260–275 [42]
+	Ag
+	Ag
+	12±1
+	Co-deformation
+	340–365 [42]
+	Sn
+	Sn
+	10±1
+	Co-deformation
+	325–370 [41]
+	Al
+	Al
+	14±2
+	Co-deformation
+	790–835 [40]
+	Al 6061
+	Al 6061
+	13±3
+	Co-deformation
+	900–950 [32]
+	Al 2024
+	Al 2024
+	14±3
+	Co-deformation
+	1095–1220 [32]
+	Al 7075
+	Al 7075
+	15±2
+	Co-deformation
+	1200–1290 [32]
+	*  C A. Particle flattening during cold spray: Mechanistic regimes revealed by single particle impact tests[J]. Surface and Coatings Technology, 2020, 403: 126386.
+They presented measurements of the flattening ratio ε is not monotonically increasing with velocity.
+In regime I, at lower velocities just high enough to cause bonding, an impacting particle flattens largely unhindered.
+In regime II, at somewhat higher velocities, the substrate develops a significant crater, which in turn constrains lateral particle flattening as the particle burrows more deeply into the substrate. (substrate develops a crater large enough to constrain lateral particle flattening. )
+   
+  
+
+  
+
+
+
+ 
+
+
+
+
+ Cold Spray Additive Manufacturing: A Review of Shape Control Challenges and Solutions 
+ 
+2 Cold Spray of Ni-Based Superalloys: A Review on Processing and Residual Stress 
+Deposit nickel-based superalloys, high tensile strength and corrosion and poor mechanical properties due to the materials’ limited ability to undergo plastic deformation. Addition of external heat during cold spray increased the adhesion strength of the coatings due to an increase in the thermal softening effect of the deposited particles.

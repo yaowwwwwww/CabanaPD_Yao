@@ -1,0 +1,210 @@
+\section{Method}
+
+\subsection{Material-Dependent Phonon-Drag Closure}
+The constitutive form is written in piecewise form because the literature surveyed for cold-spray impact does not support a single weak logarithmic rate sensitivity over the full loading range. High-velocity microparticle impact studies indicate a distinct transition from ordinary plastic flow to a regime characterized by rapid strengthening, jetting, strong interface plasticity, and a marked change in rebound or adhesion behavior as the impact severity increases \cite{Hassani2019,Tiamiyu2021,Zhang2025Peridynamics,Chen2026Indentation}. This is consistent with the model-development conclusion reached earlier in the present work: the low-rate Johnson--Cook branch should be retained where its logarithmic rate term remains adequate, while an additional drag-controlled increment must be introduced once the local plastic strain rate exceeds a transition threshold. The total flow stress is therefore written in the following piecewise form. At the highest level, the constitutive structure may be summarized as
+\begin{equation}
+\sigma_{\mathrm{flow}}=
+\begin{cases}
+\sigma_{\mathrm{JC,low}}, & \dot{\varepsilon}_p \le \dot{\varepsilon}^{\mathrm{eff}}_c,\\[0.4em]
+\sigma_{\mathrm{JC,low}}+\sigma_{\mathrm{drag}}, & \dot{\varepsilon}_p > \dot{\varepsilon}^{\mathrm{eff}}_c,
+\end{cases}
+\label{eq:flow_piecewise_overview}
+\end{equation}
+This summary equation is expanded below. For plastic strain rates below the transition threshold, the standard low-rate Johnson--Cook branch is retained \cite{JohnsonCook1983},
+\begin{equation}
+\sigma_{\mathrm{flow}}=
+\left(A+B\varepsilon_p^n\right)
+\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
+\left(1-T^{*m_{\mathrm{th}}}\right),
+\qquad \dot{\varepsilon}_p \le \dot{\varepsilon}^{\mathrm{eff}}_c,
+\label{eq:flow_low}
+\end{equation}
+where
+\begin{equation}
+T^*=\mathrm{clamp}\left(\frac{T-T_{\mathrm{ref}}}{T_m-T_{\mathrm{ref}}},0,1\right).
+\label{eq:Tstar}
+\end{equation}
+In Eq.~\eqref{eq:flow_low}, $A$, $B$, and $n$ control the hardening response, $C_1$ controls the low-rate logarithmic strain-rate sensitivity, and $m_{\mathrm{th}}$ controls thermal softening. This same low-rate JC contribution is retained as the baseline term even after the transition is crossed.
+
+For plastic strain rates above the transition threshold, the low-rate Johnson--Cook branch is continued and the drag contribution is added as a continuous increment,
+\begin{equation}
+\sigma_{\mathrm{flow}}=
+\left(A+B\varepsilon_p^n\right)
+\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
+\left(1-T^{*m_{\mathrm{th}}}\right)
++\sigma_{\mathrm{drag}},
+\qquad \dot{\varepsilon}_p > \dot{\varepsilon}^{\mathrm{eff}}_c.
+\label{eq:flow_high}
+\end{equation}
+This was the final model decision in the present development: the high-rate branch should not consist of drag alone, but neither is it necessary to freeze the low-rate JC term once the drag increment becomes dominant. Instead, the low-rate JC branch remains as the baseline stress and the drag term contributes only the additional high-rate increment. Because Eq.~\eqref{eq:drag_substituted} is zero at $\dot{\varepsilon}^{\mathrm{eff}}_c$, the piecewise law remains continuous at the transition point. The limiting case $K_0=0$ therefore reduces to the continued low-rate JC branch, which is the correct zero-increment limit of the present closure.
+
+\subsection{Phonon-Drag-Controlled Rate Effect}
+The thermal phonons in a crystal are scattered by gliding dislocations, thereby resulting in a drag force on the dislocations \cite{Blaschke2019PhononWind}. By analogy with linear drag, the dislocation drag force per unit length may be written as
+\begin{equation}
+F = Bv,
+\label{eq:micro_drag}
+\end{equation}
+where $B$ is a drag coefficient and $v$ is the dislocation velocity. Equation~\eqref{eq:micro_drag} is used here as the physical starting point, not as the final constitutive law. The present objective is to construct a continuum closure for the drag-controlled high-rate resistance that appears in Eq.~\eqref{eq:flow_high}.
+
+Following the total--particular--total logic adopted during model development, the drag contribution is first introduced in the generic macroscopic form
+\begin{equation}
+\sigma_{\mathrm{drag}} = K_0 \times (\text{rate term}),
+\label{eq:drag_template}
+\end{equation}
+where $K_0$ is the baseline magnitude of the macroscopic drag resistance. In the present logarithmic closure, $K_0$ carries units of stress and directly sets the amplitude of the drag-induced stress increment. The remaining task is therefore to determine the temperature scaling and the over-threshold rate measure.
+
+The temperature-dependent amplitude is written in the separable form
+\begin{equation}
+K_0^{\mathrm{mat}} = K_0\left(\frac{G(T)}{G_0}\right)^a,
+\label{eq:k0_materialized}
+\end{equation}
+where $G_0$ is the reference shear modulus and $a$ is a temperature-sensitivity exponent. As discussed previously, the characteristic transverse sound speed is treated as a constant,
+\begin{equation}
+c_T = c_{T0} = \text{constant},
+\label{eq:ct_constant}
+\end{equation}
+while the temperature dependence is retained only in the shear modulus,
+\begin{equation}
+G(T)=G_0\left[1-\beta_G\frac{T-T_0}{T_m-T_0}\right].
+\label{eq:G_of_T}
+\end{equation}
+Hence, $c_{T0}$ supplies the velocity scale for high-rate dislocation motion, whereas $G(T)$ controls the temperature-dependent amplitude of the drag resistance.
+
+The macroscopic plastic strain rate is linked to dislocation motion through the Orowan picture, for which
+\begin{equation}
+\dot{\varepsilon}_p \sim \rho_m b v,
+\label{eq:orowan}
+\end{equation}
+where $\rho_m$ is the mobile dislocation density and $b$ is the Burgers vector \cite{Orowan1940}. In the present continuum closure, the detailed dislocation-density evolution is not resolved explicitly. Instead, Eq.~\eqref{eq:orowan} motivates the use of $\dot{\varepsilon}_p$, $b$, and $c_{T0}$ to define the transition-rate scale.
+
+Blaschke et al.~\cite{Blaschke2019PhononWind} showed that the anharmonic interaction and scattering of phonons by a moving dislocation, namely the phonon wind, imparts a drag force $vB(v,T,\rho)$ on the dislocation. Their analysis further shows that the drag coefficient is only approximately velocity-independent in the low-velocity regime, whereas it increases nonlinearly as the dislocation velocity approaches the transverse sound speed $c_T$. In that sense, the sound-speed scale provides the physically motivated upper-bound kinematic reference for drag-dominant strengthening. If Eq.~\eqref{eq:orowan} is evaluated at the sonic-limit velocity scale, the corresponding microscopic rate scale is first written in the more complete form
+\begin{equation}
+\dot{\varepsilon}_{\mathrm{limit}} \sim \rho_m b c_{T0}.
+\label{eq:epsdot_limit_full}
+\end{equation}
+Equation~\eqref{eq:epsdot_limit_full} is the direct Orowan-based estimate. However, the present continuum formulation does not evolve the detailed mobile dislocation density, and the unresolved density scale is absorbed into the bridge calibration introduced below. At the order-of-magnitude level, this corresponds to replacing the unresolved microscopic density factor by a characteristic inverse area scale, $\rho_m \sim O(b^{-2})$, so that
+\begin{equation}
+\rho_m b c_{T0} \sim \frac{c_{T0}}{b}.
+\label{eq:epsdot_limit_recast}
+\end{equation}
+Accordingly, the microscopic transition-rate scale used in the present closure is written as
+\begin{equation}
+\dot{\varepsilon}^{\mathrm{micro}}_c \sim \frac{c_{T0}}{b}.
+\label{eq:epsdot_c_micro}
+\end{equation}
+Equation~\eqref{eq:epsdot_c_micro} should therefore be interpreted as a recast order-of-magnitude estimate derived from Eq.~\eqref{eq:epsdot_limit_full}, rather than as a direct one-step substitution from dislocation velocity to strain rate.
+At the continuum level, the experimentally relevant transition occurs at a much smaller rate. An effective critical strain rate is therefore introduced first,
+\begin{equation}
+\dot{\varepsilon}^{\mathrm{eff}}_c = \frac{1}{\Lambda_{\mathrm{ph}}}\frac{c_{T0}}{b},
+\label{eq:epsdot_c_eff}
+\end{equation}
+and the bridge factor $\Lambda_{\mathrm{ph}}$ is then specified below. This ordering is important: the constitutive law is defined first in terms of the effective transition rate, and the bridge factor is subsequently used to connect that transition rate to the microscopic sonic-limit estimate.
+
+The critical strain rate is treated here as a material-dependent transition threshold rather than a loading-condition-dependent quantity. The impact velocity controls the actually attained plastic strain-rate field, but it should not directly redefine the intrinsic transition rate itself. Accordingly, $\dot{\varepsilon}^{\mathrm{eff}}_c$ is taken as a fixed constitutive parameter once the material and discretization scales are selected.
+
+To ensure that the high-rate branch is continuous at the transition point without producing an excessively steep high-rate tail, the rate amplification is written in logarithmic form,
+\begin{equation}
+A_{\dot{\varepsilon}}(\dot{\varepsilon}_p)=
+\left[
+\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}^{\mathrm{eff}}_c}\right)
+\right]_+,
+\label{eq:rate_amplification}
+\end{equation}
+where $[x]_+=\max(x,0)$. The drag increment therefore vanishes exactly at the transition rate and then grows only logarithmically above it. Combining Eqs.~\eqref{eq:drag_template}, \eqref{eq:k0_materialized}, and \eqref{eq:rate_amplification} yields the working drag closure
+\begin{equation}
+\sigma_{\mathrm{drag}}=
+K_0
+\left(\frac{G(T)}{G_0}\right)^a
+\left[
+\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}^{\mathrm{eff}}_c}\right)
+\right]_+
+\!,
+\label{eq:drag_working}
+\end{equation}
+In Eq.~\eqref{eq:drag_working}, the logarithmic over-threshold term controls the shape of the high-rate rise. This was adopted specifically to avoid the overly slow mid-rate growth and overly steep ultra-high-rate growth produced by the earlier multiplicative rate-power form.
+
+The bridge factor is introduced to connect the continuum transition rate to the microscopic scale in Eq.~\eqref{eq:epsdot_c_micro}. A simple linear scale ratio $d/b$ is too small to reduce the transition rate to the experimentally relevant range, while a volume-type ratio $(d/b)^3$ over-suppresses the transition rate. In the present formulation, an area-type bridge is adopted,
+\begin{equation}
+\Lambda_{\mathrm{ph}} = \left(\frac{d}{b}\right)^2,
+\label{eq:Lambda_ph_scale_ratio}
+\end{equation}
+where $d$ is the continuum discretization length. For the current implementation,
+\begin{equation}
+d = \SI{1.0e-6}{m}, \qquad b = \SI{2.56e-10}{m},
+\label{eq:d_and_b_values}
+\end{equation}
+which gives
+\begin{equation}
+\Lambda_{\mathrm{ph}} \approx 1.53\times10^7,
+\label{eq:Lambda_value}
+\end{equation}
+and therefore
+\begin{equation}
+\dot{\varepsilon}^{\mathrm{eff}}_c \approx 5.7\times10^5\;s^{-1}.
+\label{eq:epsdot_c_value}
+\end{equation}
+Substituting Eq.~\eqref{eq:epsdot_c_eff} into Eq.~\eqref{eq:drag_working} finally gives the fully substituted drag law,
+\begin{equation}
+\sigma_{\mathrm{drag}}=
+K_0
+\left(\frac{G(T)}{G_0}\right)^a
+\left[
+\ln\left(\Lambda_{\mathrm{ph}}\frac{\dot{\varepsilon}_p b}{c_{T0}}\right)
+\right]_+
+\!,
+\label{eq:drag_substituted}
+\end{equation}
+Equation~\eqref{eq:drag_substituted} is the final closed form used in the constitutive model.
+
+\subsection{Taylor--Quinney and Johnson--Cook Coupling}
+The thermomechanical coupling is introduced through the Taylor--Quinney relation \cite{TaylorQuinney1934,Rittel2019}. The adiabatic temperature rise associated with plastic work is written as
+\begin{equation}
+\Delta T = \frac{\beta_{\mathrm{TQ}}\,\sigma_{\mathrm{flow}}\,\Delta\varepsilon_p}{\rho c_p},
+\label{eq:TQ_update}
+\end{equation}
+where $\beta_{\mathrm{TQ}}$ is the Taylor--Quinney coefficient, $\rho$ is the density, and $c_p$ is the specific heat. Equation~\eqref{eq:TQ_update} feeds back into the constitutive model through two paths: the thermal softening factor in Eq.~\eqref{eq:flow_low} and the modulus-ratio term in Eq.~\eqref{eq:drag_substituted}.
+
+Table~\ref{tab:model_parameters} summarizes the meanings of the main model parameters. As requested during model writing, the table is restricted to parameter meaning only; the role of each parameter in the constitutive law is described directly below the corresponding equations rather than being duplicated in the table.
+
+\begin{table}[H]
+\centering
+\caption{Meaning of the main model parameters.}
+\label{tab:model_parameters}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$A$ & Reference yield stress \\
+$B$ & Strain-hardening coefficient \\
+$n$ & Strain-hardening exponent \\
+$C_1$ & Low-rate logarithmic strain-rate coefficient \\
+$\dot{\varepsilon}_0$ & Reference plastic strain rate \\
+$m_{\mathrm{th}}$ & Thermal softening exponent \\
+$\beta_{\mathrm{TQ}}$ & Taylor--Quinney coefficient \\
+$K_0$ & Baseline macroscopic drag stress scale \\
+$a$ & Exponent for drag-amplitude temperature sensitivity \\
+$\Lambda_{\mathrm{ph}}$ & Macro-to-micro bridge factor \\
+$b$ & Burgers vector \\
+$c_{T0}$ & Characteristic transverse sound speed \\
+$G_0$ & Reference shear modulus \\
+$\beta_G$ & Shear-modulus thermal degradation coefficient \\
+$d$ & Continuum discretization length used in the bridge factor \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:material_scales} lists representative material scales for Cu and Al that were discussed during model construction.
+
+\begin{table}[H]
+\centering
+\caption{Representative material scales used to interpret the drag transition.}
+\label{tab:material_scales}
+\begin{tabular}{lccccc}
+\toprule
+Material & $\rho$ (kg/m$^3$) & $b$ (nm) & $G_0$ (GPa) & $c_{T0}$ (m/s) & $c_{T0}/b$ (s$^{-1}$) \\
+\midrule
+Cu & 8960 & 0.256 & 44.8 & $2.24\times10^3$ & $8.75\times10^{12}$ \\
+Al & 2700 & 0.286 & 26.3 & $3.12\times10^3$ & $1.09\times10^{13}$ \\
+\bottomrule
+\end{tabular}
+\end{table}

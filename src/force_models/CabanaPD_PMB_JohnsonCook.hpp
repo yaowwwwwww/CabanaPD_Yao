@@ -58,6 +58,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     double C2;  // C2 (defaults to C1 when not provided)
     double eps_dot0;
     double eps_dot_u; // critical strain-rate for piecewise split
+    // High-rate drag increment parameters.
+    double drag_K0;
+    double drag_m; // legacy compatibility; inactive in current log drag law
+    double drag_a;
+    double drag_beta_G;
+    double G_ref;
     // Adiabatic heating parameters.
     double cp_adiabatic;
     double taylor_quinney;
@@ -83,7 +89,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
                        const double _T_melt = 1356.0,
                        const double _m_thermal = 1.09,
                        const double _C2 = -1.0,
-                       const double _eps_dot_u = -1.0 )
+                       const double _eps_dot_u = -1.0,
+                       const double _drag_K0 = 0.0,
+                       const double _drag_m = 0.1,
+                       const double _drag_a = 1.0,
+                       const double _drag_beta_G = 0.9,
+                       const double _G_ref = 1.0 )
         : base_type( model, NoFracture{}, delta, _K )
         , base_plasticity_type()
         , A( _A )
@@ -93,6 +104,11 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         , C2( _C2 >= 0.0 ? _C2 : _C )
         , eps_dot0( _eps_dot0 )
         , eps_dot_u( _eps_dot_u )
+        , drag_K0( _drag_K0 )
+        , drag_m( _drag_m )
+        , drag_a( _drag_a )
+        , drag_beta_G( _drag_beta_G )
+        , G_ref( _G_ref )
         , cp_adiabatic( _cp_adiabatic )
         , taylor_quinney( _taylor_quinney )
         , T_ref( _T_ref )
@@ -116,6 +132,11 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         C2 = ( model1.C2 + model2.C2 ) / 2.0;
         eps_dot0 = ( model1.eps_dot0 + model2.eps_dot0 ) / 2.0;
         eps_dot_u = ( model1.eps_dot_u + model2.eps_dot_u ) / 2.0;
+        drag_K0 = ( model1.drag_K0 + model2.drag_K0 ) / 2.0;
+        drag_m = ( model1.drag_m + model2.drag_m ) / 2.0;
+        drag_a = ( model1.drag_a + model2.drag_a ) / 2.0;
+        drag_beta_G = ( model1.drag_beta_G + model2.drag_beta_G ) / 2.0;
+        G_ref = ( model1.G_ref + model2.G_ref ) / 2.0;
         cp_adiabatic = ( model1.cp_adiabatic + model2.cp_adiabatic ) / 2.0;
         taylor_quinney =
             ( model1.taylor_quinney + model2.taylor_quinney ) / 2.0;
@@ -152,6 +173,16 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     }
 
     KOKKOS_INLINE_FUNCTION
+    double rateFactorLow( const double eps_p_dot ) const
+    {
+        if ( C == 0.0 || eps_dot0 <= 0.0 )
+            return 1.0;
+
+        const double eps_eff = Kokkos::fmax( eps_p_dot, eps_dot0 );
+        return 1.0 + C * Kokkos::log( eps_eff / eps_dot0 );
+    }
+
+    KOKKOS_INLINE_FUNCTION
     double rateFactor( const double eps_p_dot ) const
     {
         if ( C == 0.0 || eps_dot0 <= 0.0 )
@@ -177,6 +208,12 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     }
 
     KOKKOS_INLINE_FUNCTION
+    bool useDragHighRateBranch() const
+    {
+        return drag_K0 > 0.0 && eps_dot_u > eps_dot0;
+    }
+
+    KOKKOS_INLINE_FUNCTION
     double thermalFactor( const int i ) const
     {
         if ( m_thermal <= 0.0 || T_melt <= T_ref )
@@ -187,6 +224,19 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         T_star = Kokkos::fmax( 0.0, Kokkos::fmin( 1.0, T_star ) );
         const double soft = 1.0 - Kokkos::pow( T_star, m_thermal );
         return Kokkos::fmax( 0.0, soft );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    double modulusRatio( const int i ) const
+    {
+        if ( G_ref <= 0.0 || T_melt <= T_ref )
+            return 1.0;
+
+        const double T = T_ref + _temp_adiabatic( i );
+        double theta = ( T - T_ref ) / ( T_melt - T_ref );
+        theta = Kokkos::fmax( 0.0, Kokkos::fmin( 1.0, theta ) );
+        const double ratio = 1.0 - drag_beta_G * theta;
+        return Kokkos::fmax( 0.0, ratio );
     }
 
     // Accessors for point-level plasticity aggregation.
@@ -208,11 +258,33 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
     }
 
     KOKKOS_INLINE_FUNCTION
+    double dragStress( const int i, const double eps_p_dot ) const
+    {
+        if ( !useDragHighRateBranch() )
+            return 0.0;
+
+        const double eps_eff = Kokkos::fmax( eps_p_dot, 0.0 );
+        if ( eps_eff <= eps_dot_u )
+            return 0.0;
+
+        const double rate_ratio = eps_eff / eps_dot_u;
+        const double ampl = Kokkos::fmax( Kokkos::log( rate_ratio ), 0.0 );
+        return drag_K0 * Kokkos::pow( modulusRatio( i ), drag_a ) * ampl;
+    }
+
+    KOKKOS_INLINE_FUNCTION
     double pointYieldStress( const int i ) const
     {
         const double eps_p = _eps_p( i );
-        return hardeningYieldStress( eps_p ) *
-               rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
+        const double eps_p_dot = pointPlasticStrainRate( i );
+        const double sigma_low_jc =
+            hardeningYieldStress( eps_p ) * rateFactorLow( eps_p_dot ) *
+            thermalFactor( i );
+
+        if ( !useDragHighRateBranch() || eps_p_dot <= eps_dot_u )
+            return sigma_low_jc;
+
+        return sigma_low_jc + dragStress( i, eps_p_dot );
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -226,13 +298,9 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         const bool j_local = ( j < num_local );
         const double eps_p_j = j_local ? _eps_p( j ) : eps_p_i;
         const double sigma_y_i =
-            hardeningYieldStress( eps_p_i ) *
-            rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
+            pointYieldStress( i );
         const double sigma_y_j =
-            hardeningYieldStress( eps_p_j ) *
-            rateFactor( j_local ? pointPlasticStrainRate( j )
-                                : pointPlasticStrainRate( i ) ) *
-            ( j_local ? thermalFactor( j ) : thermalFactor( i ) );
+            j_local ? pointYieldStress( j ) : sigma_y_i;
         const double s_Y = 0.5 * ( sigma_y_i + sigma_y_j ) / ( 3.0 * K );
 
         // Yield in tension.
@@ -273,13 +341,9 @@ struct BaseForceModelPMB<JohnsonCook, MemorySpace>
         const bool j_local = ( j < num_local );
         const double eps_p_j = j_local ? _eps_p( j ) : eps_p_i;
         const double sigma_y_i =
-            hardeningYieldStress( eps_p_i ) *
-            rateFactor( pointPlasticStrainRate( i ) ) * thermalFactor( i );
+            pointYieldStress( i );
         const double sigma_y_j =
-            hardeningYieldStress( eps_p_j ) *
-            rateFactor( j_local ? pointPlasticStrainRate( j )
-                                : pointPlasticStrainRate( i ) ) *
-            ( j_local ? thermalFactor( j ) : thermalFactor( i ) );
+            j_local ? pointYieldStress( j ) : sigma_y_i;
         const double s_Y = 0.5 * ( sigma_y_i + sigma_y_j ) / ( 3.0 * K );
         double stretch_term;
 
@@ -348,10 +412,16 @@ struct ForceModel<PMB, JohnsonCook, Fracture, TemperatureIndependent,
                 const double T_melt = 1356.0,
                 const double m_thermal = 1.09,
                 const double C2 = -1.0,
-                const double eps_dot_u = -1.0 )
+                const double eps_dot_u = -1.0,
+                const double drag_K0 = 0.0,
+                const double drag_m = 0.1,
+                const double drag_a = 1.0,
+                const double drag_beta_G = 0.9,
+                const double G_ref = 1.0 )
         : base_type( model, mechanics, space, delta, K, A, B, n, C, eps_dot0,
                      sample_id, dt, cp_adiabatic, taylor_quinney, T_ref,
-                     T_melt, m_thermal, C2, eps_dot_u )
+                     T_melt, m_thermal, C2, eps_dot_u, drag_K0, drag_m,
+                     drag_a, drag_beta_G, G_ref )
         , base_fracture_type( delta, K, G0 )
         , base_temperature_type()
     {
@@ -486,7 +556,10 @@ ForceModel( ModelType, JohnsonCook, MemorySpace, const double delta,
             const double taylor_quinney = 0.9,
             const double T_ref = 298.0, const double T_melt = 1356.0,
             const double m_thermal = 1.09, const double C2 = -1.0,
-            const double eps_dot_u = -1.0 )
+            const double eps_dot_u = -1.0,
+            const double drag_K0 = 0.0, const double drag_m = 0.1,
+            const double drag_a = 1.0, const double drag_beta_G = 0.9,
+            const double G_ref = 1.0 )
     -> ForceModel<ModelType, JohnsonCook, Fracture, TemperatureIndependent,
                   MemorySpace>;
 
