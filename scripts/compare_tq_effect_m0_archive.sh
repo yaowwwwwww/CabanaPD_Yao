@@ -28,6 +28,8 @@ read -r -a JC_M_LIST <<< "${JC_M_LIST_STR}"
 JC_N_FIXED=0.31
 JC_C2_FIXED="${JC_C2_FIXED:-0.908}"
 JC_EPSDOT_U_FIXED="${JC_EPSDOT_U_FIXED:-680000.0}"
+JC_EPSDOT_U_LIST_STR="${JC_EPSDOT_U_LIST_STR:-${JC_EPSDOT_U_FIXED}}"
+read -r -a JC_EPSDOT_U_LIST <<< "${JC_EPSDOT_U_LIST_STR}"
 DRAG_K0_FIXED="${DRAG_K0_FIXED:-0.0}"
 DRAG_K0_LIST_STR="${DRAG_K0_LIST_STR:-${DRAG_K0_FIXED}}"
 read -r -a DRAG_K0_LIST <<< "${DRAG_K0_LIST_STR}"
@@ -125,7 +127,8 @@ run_one_case() {
   local tq="$9"
   local jc_m="${10}"
   local drag_k0="${11}"
-  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_K0_${drag_k0}_tq_${tq}_ft_${final_time}"
+  local epsdot_u="${12}"
+  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_K0_${drag_k0}_U_${epsdot_u}_tq_${tq}_ft_${final_time}"
   local case_tag="run_${case_name}"
   local case_dir="${RUNS_ROOT}/${case_tag}"
   local case_solver_log="${case_dir}/cabana_output.log"
@@ -150,7 +153,7 @@ run_one_case() {
     --argjson jc_n      "${JC_N_FIXED}" \
     --argjson jc_c      "${jc_c}" \
     --argjson jc_c2     "${JC_C2_FIXED}" \
-    --argjson epsdot_u  "${JC_EPSDOT_U_FIXED}" \
+    --argjson epsdot_u  "${epsdot_u}" \
     --argjson jc_m      "${jc_m}" \
     --argjson drag_k0   "${drag_k0}" \
     --argjson drag_m    "${DRAG_M_FIXED}" \
@@ -427,13 +430,13 @@ fi
 mkdir -p "${RUNS_ROOT}"
 if [ ! -s "${SUMMARY_FILE}" ]; then
   {
-      printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; JC_C2_FIXED=%s; JC_EPSDOT_U_FIXED=%s; DRAG_K0_LIST=%s; DRAG_M_FIXED=%s; DRAG_A_FIXED=%s; DRAG_BETA_G_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
+      printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; JC_C2_FIXED=%s; JC_EPSDOT_U_LIST=%s; DRAG_K0_LIST=%s; DRAG_M_FIXED=%s; DRAG_A_FIXED=%s; DRAG_BETA_G_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
         "${CASE_MATRIX[*]}" \
         "${JC_M_LIST[*]}" \
         "${TQ_LIST[*]}" \
         "${JC_N_FIXED}" \
         "${JC_C2_FIXED}" \
-        "${JC_EPSDOT_U_FIXED}" \
+        "${JC_EPSDOT_U_LIST[*]}" \
         "${DRAG_K0_LIST[*]}" \
         "${DRAG_M_FIXED}" \
         "${DRAG_A_FIXED}" \
@@ -459,6 +462,7 @@ echo "Run root: ${RUNS_ROOT}"
 echo "Summary: ${SUMMARY_FILE}"
 echo "M list: ${JC_M_LIST[*]}, jc_n=${JC_N_FIXED}, CZM=(${CZM_SCALE_FIXED},${CZM_YIELD_FIXED},${CZM_DECAY_FIXED})"
 echo "tq list: ${TQ_LIST[*]}"
+echo "epsdot_u list: ${JC_EPSDOT_U_LIST[*]}"
 echo
 
 for case_spec in "${CASE_MATRIX[@]}"; do
@@ -485,9 +489,11 @@ for case_spec in "${CASE_MATRIX[@]}"; do
   for alpha_val in "${CURRENT_ALPHAS[@]}"; do
     for beta_val in "${CURRENT_BETAS[@]}"; do
       for jc_m in "${JC_M_LIST[@]}"; do
-        for drag_k0 in "${DRAG_K0_LIST[@]}"; do
-          for tq in "${TQ_LIST[@]}"; do
-            run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}" "${drag_k0}"
+        for epsdot_u in "${JC_EPSDOT_U_LIST[@]}"; do
+          for drag_k0 in "${DRAG_K0_LIST[@]}"; do
+            for tq in "${TQ_LIST[@]}"; do
+              run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}" "${drag_k0}" "${epsdot_u}"
+            done
           done
         done
       done
