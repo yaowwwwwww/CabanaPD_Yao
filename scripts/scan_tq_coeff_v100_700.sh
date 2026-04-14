@@ -26,13 +26,12 @@ export TQ_LIST_STR="${TQ_LIST_STR:-0.1 0.3 0.5 0.8}"
 
 # Keep other model settings fixed by default.
 export JC_M_LIST_STR="${JC_M_LIST_STR:-1.09}"
-export DRAG_K0_LIST_STR="${DRAG_K0_LIST_STR:-1e8}"
+export DRAG_BD_LIST_STR="${DRAG_BD_LIST_STR:-1e-5}"
 export JC_N_FIXED="${JC_N_FIXED:-0.31}"
 export JC_C2_FIXED="${JC_C2_FIXED:-0.908}"
 export JC_EPSDOT_U_FIXED="${JC_EPSDOT_U_FIXED:-680000.0}"
-export DRAG_M_FIXED="${DRAG_M_FIXED:-0.008}"
-export DRAG_A_FIXED="${DRAG_A_FIXED:-1.0}"
-export DRAG_BETA_G_FIXED="${DRAG_BETA_G_FIXED:-0.9}"
+export DRAG_RHO_MOBILE_FIXED="${DRAG_RHO_MOBILE_FIXED:-1.0e13}"
+export DRAG_BURGERS_FIXED="${DRAG_BURGERS_FIXED:-2.56e-10}"
 export OUTPUT_FREQUENCY_FIXED="${OUTPUT_FREQUENCY_FIXED:-200}"
 
 exec bash "${ROOT_DIR}/scripts/compare_tq_effect_m0_archive.sh"

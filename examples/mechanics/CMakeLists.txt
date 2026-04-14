@@ -25,7 +25,10 @@ target_link_libraries(ColdSprayImpact LINK_PUBLIC CabanaPD)
 add_executable(ColdSprayImpactThermal simple_impact_thermal.cpp)
 target_link_libraries(ColdSprayImpactThermal LINK_PUBLIC CabanaPD)
 
+add_executable(VerifyEq16Drag verify_eq16_drag.cpp)
+target_link_libraries(VerifyEq16Drag LINK_PUBLIC CabanaPD)
+
 add_executable(CrackInclusion crack_inclusion.cpp)
 target_link_libraries(CrackInclusion LINK_PUBLIC CabanaPD)
 
-install(TARGETS ElasticWave KalthoffWinkler CrackBranching FragmentingCylinder RandomCracks DogboneTensileTest PlateWithHole CrackInclusion ColdSprayImpact ColdSprayImpactThermal DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS ElasticWave KalthoffWinkler CrackBranching FragmentingCylinder RandomCracks DogboneTensileTest PlateWithHole CrackInclusion ColdSprayImpact ColdSprayImpactThermal VerifyEq16Drag DESTINATION ${CMAKE_INSTALL_BINDIR})

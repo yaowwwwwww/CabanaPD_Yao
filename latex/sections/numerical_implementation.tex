@@ -1,47 +1,56 @@
 \section{Numerical Implementation}
 
-\subsection{Johnson--Cook Stress Evaluation}
-The reconstructed constitutive model is implemented through the Johnson--Cook force-model path in the impact solver. At each material point, the constitutive update requires the accumulated plastic strain $\varepsilon_p$, the instantaneous plastic strain rate $\dot{\varepsilon}_p$, and the adiabatic temperature rise. The low-rate branch evaluates the standard JC expression,
+\subsection{Implemented Johnson--Cook Plus Eq.~16 Drag Law}
+The current branch no longer uses the earlier logarithmic $K_0$ drag increment. In the implementation used here, the flow stress is evaluated as
 \begin{equation}
-\sigma_{\mathrm{low}}=
+\sigma_{\mathrm{flow}} =
 \left(A+B\varepsilon_p^n\right)
-\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
-\left(1-T^{*m_{\mathrm{th}}}\right),
+\left[1+C\ln\left(\frac{\max(\dot{\varepsilon}_p,\dot{\varepsilon}_0)}{\dot{\varepsilon}_0}\right)\right]
+\left(1-T^{*m_{\mathrm{th}}}\right)
+\;+\;
+\sigma_d,
 \end{equation}
-whenever $\dot{\varepsilon}_p \le \dot{\varepsilon}^{\mathrm{eff}}_c$. The high-rate branch is evaluated in two steps. First, the low-rate JC branch is continued as the baseline contribution,
+with
 \begin{equation}
-\sigma_{\mathrm{JC,low}}=
-\left(A+B\varepsilon_p^n\right)
-\left[1+C_1\ln\left(\frac{\dot{\varepsilon}_p}{\dot{\varepsilon}_0}\right)\right]
-\left(1-T^{*m_{\mathrm{th}}}\right),
+T^*=\mathrm{clamp}\left(\frac{T-T_{\mathrm{ref}}}{T_m-T_{\mathrm{ref}}},0,1\right),
 \end{equation}
-and second, the drag increment is added according to Eq.~\eqref{eq:drag_substituted}. Thus the implemented high-rate branch is
+and the drag contribution taken directly from Eq.~16 of the thesis,
 \begin{equation}
-\sigma_{\mathrm{high}} = \sigma_{\mathrm{JC,low}} + \sigma_{\mathrm{drag}},
+\sigma_d = \frac{B_d}{\rho_m b^2}\dot{\varepsilon}_p.
 \end{equation}
-which guarantees that the transition from the low-rate branch remains continuous because the logarithmic drag increment vanishes at the transition threshold.
+Here $B_d$, the mobile dislocation density $\rho_m$, and the Burgers vector $b$ are all supplied explicitly in the JSON input file. No internal evaluation of Eq.~17 is performed in the code path for this branch.
 
-This specific form reflects a conclusion reached repeatedly during model development: the high-rate branch should not be written as a drag-only stress. If the drag term alone is used above the transition, the total flow stress can drop unphysically at the switching point because the drag increment is constructed to start from zero. The implemented form therefore keeps the ordinary JC contribution as the baseline stress and adds only the incremental drag contribution.
-
-\subsection{Discrete Plastic-Strain-Rate and Adiabatic Heating Update}
-At the discrete level, the plastic strain rate is evaluated from the peridynamic kinematics and local plasticity update. This quantity is then used in three separate places within the constitutive evaluation:
-\begin{enumerate}[leftmargin=1.5em]
-\item the low-rate JC logarithmic rate term,
-\item the logarithmic over-threshold drag function in the high-rate branch,
-\item the adiabatic temperature update through the Taylor--Quinney relation.
-\end{enumerate}
-The temperature update is written in incremental form as
+\subsection{Discrete Update and Input Parameters}
+The pointwise plastic strain rate is evaluated from the lagged point plastic strain history,
+\begin{equation}
+\dot{\varepsilon}_p = \max\left(\frac{\varepsilon_p^{n+1}-\varepsilon_p^n}{\Delta t},0\right),
+\end{equation}
+and this rate is used in both the low-rate Johnson--Cook logarithmic factor and the additive Eq.~16 drag term. The adiabatic temperature update remains
 \begin{equation}
 \Delta T = \frac{\beta_{\mathrm{TQ}}\,\sigma_{\mathrm{flow}}\,\Delta\varepsilon_p}{\rho c_p}.
 \end{equation}
-The updated temperature enters the constitutive law through the normalized temperature $T^*$ and through the modulus ratio $G(T)/G_0$. This creates a direct thermomechanical coupling between plastic flow, heat generation, and drag-controlled strengthening.
+The thermal factor therefore still enters through $T^*$ in the Johnson--Cook term, while the drag term is controlled only by the three explicit inputs $B_d$, $\rho_m$, and $b$.
 
-The implementation also preserves the conceptual separation established in the constitutive derivation. The quantity $c_{T0}$ is used only as the fixed velocity scale needed to define the microscopic transition-rate estimate, while $G(T)$ is used only as the temperature-dependent amplitude factor in the drag term. This avoids enforcing an artificial temperature dependence on the sound-speed scale inside the constitutive closure.
+\subsection{Verification and Reference Plots}
+The modified implementation was checked in three ways:
+\begin{enumerate}[leftmargin=1.5em]
+\item the full codebase was rebuilt successfully, including the \path{ColdSprayImpactThermal} executable;
+\item a short solver smoke test was run with the updated JSON keys to confirm that the executable accepts the new drag inputs at runtime;
+\item an Octave reference script, \path{scripts/plot_eq16_drag_model.m}, reproduced the exact implemented formula and wrote a tabulated numerical check to \path{latex/figures/jc_eq16_drag_verification.tsv}.
+\end{enumerate}
+The verification table records the drag slope $B_d/(\rho_m b^2)$, the drag stress at $\dot{\varepsilon}_p=10^7\,\mathrm{s^{-1}}$, the expected factor-of-two increase when the strain rate is doubled, and the closure residual $\sigma_{\mathrm{flow}}-\sigma_{\mathrm{JC,low}}-\sigma_d$, which should remain numerically zero up to roundoff.
+The reference curves below were generated from the current values stored in the thermal-impact input deck.
 
-\subsection{Calibration Strategy}
-The final constitutive law contains a clear separation between fixed material scales and calibrated closure parameters. The quantities $b$, $c_{T0}$, $G_0$, $\rho$, $c_p$, and the low-rate JC parameters are treated as material inputs. The bridge factor $\Lambda_{\mathrm{ph}}$ is set from the discretization-based area scaling in Eq.~\eqref{eq:Lambda_ph_scale_ratio}. The remaining drag parameters then play distinct roles:
-\begin{itemize}[leftmargin=1.5em]
-\item $K_0$ controls the overall magnitude of the drag increment,
-\item $a$ controls how strongly the drag amplitude follows the thermal degradation of the shear modulus.
-\end{itemize}
-This separation was one of the key practical requirements identified during the development of the model: the drag branch must be simple enough to calibrate against high-rate impact data without obscuring the interpretation of the low-rate JC parameters.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/jc_eq16_stress_vs_strain_rate.png}
+\caption{Reference stress--strain-rate curves generated from the implemented Johnson--Cook plus Eq.~16 drag law. Each panel compares the low-rate Johnson--Cook baseline to the updated model with the additive Eq.~16 drag term at the reference temperature.}
+\label{fig:eq16_stress_vs_strain_rate}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/jc_eq16_stress_vs_strain.png}
+\caption{Reference stress--strain curves from the same implementation at the reference temperature for several fixed plastic strain rates. The vertical separation between curves comes from the combined low-rate Johnson--Cook rate factor and the additive Eq.~16 drag term.}
+\label{fig:eq16_stress_vs_strain}
+\end{figure}

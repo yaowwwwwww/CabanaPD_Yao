@@ -1,0 +1,3 @@
+material	drag_slope_Pa_s	Bd_Pa_s	rho_mobile_m^-2	burgers_m	sigma_drag_1e7_MPa	ratio_drag_2x	closure_residual_Pa
+Al projectile	1.22255367e+01	1.00000000e-05	1.00000000e+13	2.86000000e-10	122.25536701	2.00000000	-1.49011612e-08
+Cu substrate	1.52587891e+01	1.00000000e-05	1.00000000e+13	2.56000000e-10	152.58789063	2.00000000	2.98023224e-08

@@ -30,18 +30,24 @@ JC_C2_FIXED="${JC_C2_FIXED:-0.908}"
 JC_EPSDOT_U_FIXED="${JC_EPSDOT_U_FIXED:-680000.0}"
 JC_EPSDOT_U_LIST_STR="${JC_EPSDOT_U_LIST_STR:-${JC_EPSDOT_U_FIXED}}"
 read -r -a JC_EPSDOT_U_LIST <<< "${JC_EPSDOT_U_LIST_STR}"
-DRAG_K0_FIXED="${DRAG_K0_FIXED:-0.0}"
-DRAG_K0_LIST_STR="${DRAG_K0_LIST_STR:-${DRAG_K0_FIXED}}"
-read -r -a DRAG_K0_LIST <<< "${DRAG_K0_LIST_STR}"
-DRAG_M_FIXED="${DRAG_M_FIXED:-0.008}"
-DRAG_A_FIXED="${DRAG_A_FIXED:-1.0}"
-DRAG_BETA_G_FIXED="${DRAG_BETA_G_FIXED:-0.9}"
+DRAG_BD_FIXED="${DRAG_BD_FIXED:-1.0e-5}"
+DRAG_BD_LIST_STR="${DRAG_BD_LIST_STR:-${DRAG_BD_FIXED}}"
+read -r -a DRAG_BD_LIST <<< "${DRAG_BD_LIST_STR}"
+DRAG_BD_AL_FIXED="${DRAG_BD_AL_FIXED:-}"
+DRAG_BD_CU_FIXED="${DRAG_BD_CU_FIXED:-}"
+DRAG_RHO_MOBILE_FIXED="${DRAG_RHO_MOBILE_FIXED:-1.0e13}"
+DRAG_RHO_MOBILE_AL_FIXED="${DRAG_RHO_MOBILE_AL_FIXED:-${DRAG_RHO_MOBILE_FIXED}}"
+DRAG_RHO_MOBILE_CU_FIXED="${DRAG_RHO_MOBILE_CU_FIXED:-${DRAG_RHO_MOBILE_FIXED}}"
+DRAG_BURGERS_FIXED="${DRAG_BURGERS_FIXED:-2.56e-10}"
+DRAG_BURGERS_AL_FIXED="${DRAG_BURGERS_AL_FIXED:-${DRAG_BURGERS_FIXED}}"
+DRAG_BURGERS_CU_FIXED="${DRAG_BURGERS_CU_FIXED:-${DRAG_BURGERS_FIXED}}"
 CZM_SCALE_FIXED=0
 CZM_DECAY_FIXED=1.0
 CZM_YIELD_FIXED=0.05
 TQ_LIST_STR="${TQ_LIST_STR:-0 0.9}"
 read -r -a TQ_LIST <<< "${TQ_LIST_STR}"
 OUTPUT_FREQUENCY_FIXED="${OUTPUT_FREQUENCY_FIXED:-200}"
+TIMESTEP_FIXED="${TIMESTEP_FIXED:-1e-11}"
 
 # Each case: short_name vin alpha beta A B C final_time
 CASE_MATRIX=(
@@ -126,9 +132,11 @@ run_one_case() {
   local final_time="$8"
   local tq="$9"
   local jc_m="${10}"
-  local drag_k0="${11}"
+  local drag_bd="${11}"
   local epsdot_u="${12}"
-  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_K0_${drag_k0}_U_${epsdot_u}_tq_${tq}_ft_${final_time}"
+  local drag_bd_al="${DRAG_BD_AL_FIXED:-${drag_bd}}"
+  local drag_bd_cu="${DRAG_BD_CU_FIXED:-${drag_bd}}"
+  local case_name="${short_name}_vin_${vin}_alpha_${lj_alpha}_beta_${lj_beta}_A_${jc_a}_B_${jc_b}_C_${jc_c}_M_${jc_m}_Bd_${drag_bd}_U_${epsdot_u}_tq_${tq}_ft_${final_time}"
   local case_tag="run_${case_name}"
   local case_dir="${RUNS_ROOT}/${case_tag}"
   local case_solver_log="${case_dir}/cabana_output.log"
@@ -155,13 +163,16 @@ run_one_case() {
     --argjson jc_c2     "${JC_C2_FIXED}" \
     --argjson epsdot_u  "${epsdot_u}" \
     --argjson jc_m      "${jc_m}" \
-    --argjson drag_k0   "${drag_k0}" \
-    --argjson drag_m    "${DRAG_M_FIXED}" \
-    --argjson drag_a    "${DRAG_A_FIXED}" \
-    --argjson drag_bg   "${DRAG_BETA_G_FIXED}" \
+    --argjson drag_bd_al "${drag_bd_al}" \
+    --argjson drag_bd_cu "${drag_bd_cu}" \
+    --argjson drag_rho_al "${DRAG_RHO_MOBILE_AL_FIXED}" \
+    --argjson drag_rho_cu "${DRAG_RHO_MOBILE_CU_FIXED}" \
+    --argjson drag_b_al "${DRAG_BURGERS_AL_FIXED}" \
+    --argjson drag_b_cu "${DRAG_BURGERS_CU_FIXED}" \
     --argjson tq        "${tq}" \
     --argjson final_t   "${final_time}" \
     --argjson out_freq  "${OUTPUT_FREQUENCY_FIXED}" \
+    --argjson dt        "${TIMESTEP_FIXED}" \
     --argjson czm_scale "${CZM_SCALE_FIXED}" \
     --argjson czm_yield "${CZM_YIELD_FIXED}" \
     --argjson czm_decay "${CZM_DECAY_FIXED}" \
@@ -176,12 +187,12 @@ run_one_case() {
     .jc_C2.value                   = [ $jc_c2, $jc_c2 ] |
     .jc_epsdot_u.value             = [ $epsdot_u, $epsdot_u ] |
     .jc_m.value                    = [ $jc_m, $jc_m ] |
-    .drag_K0.value                 = [ $drag_k0, $drag_k0 ] |
-    .drag_m.value                  = [ $drag_m, $drag_m ] |
-    .drag_a.value                  = [ $drag_a, $drag_a ] |
-    .drag_beta_G.value             = [ $drag_bg, $drag_bg ] |
+    .drag_Bd.value                 = [ $drag_bd_al, $drag_bd_cu ] |
+    .drag_mobile_dislocation_density.value = [ $drag_rho_al, $drag_rho_cu ] |
+    .drag_burgers_vector.value     = [ $drag_b_al, $drag_b_cu ] |
     .taylor_quinney.value          = $tq        |
     .final_time.value              = $final_t   |
+    .timestep.value                = $dt        |
     .output_frequency.value        = $out_freq  |
     .CZM_cohesive_scaling.value    = $czm_scale |
     .CZM_yield_stretch.value       = $czm_yield |
@@ -430,17 +441,20 @@ fi
 mkdir -p "${RUNS_ROOT}"
 if [ ! -s "${SUMMARY_FILE}" ]; then
   {
-      printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; JC_C2_FIXED=%s; JC_EPSDOT_U_LIST=%s; DRAG_K0_LIST=%s; DRAG_M_FIXED=%s; DRAG_A_FIXED=%s; DRAG_BETA_G_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
+      printf "# params: CASE_MATRIX=%s; JC_M_LIST=%s; TQ_LIST=%s; JC_N_FIXED=%s; JC_C2_FIXED=%s; JC_EPSDOT_U_LIST=%s; DRAG_BD_LIST=%s; DRAG_BD_AL_FIXED=%s; DRAG_BD_CU_FIXED=%s; DRAG_RHO_MOBILE_AL_FIXED=%s; DRAG_RHO_MOBILE_CU_FIXED=%s; DRAG_BURGERS_AL_FIXED=%s; DRAG_BURGERS_CU_FIXED=%s; CZM=(%s,%s,%s); OUTPUT_FREQUENCY_FIXED=%s; ALPHA_LIST_STR=%s; BETA_LIST_STR=%s\n" \
         "${CASE_MATRIX[*]}" \
         "${JC_M_LIST[*]}" \
         "${TQ_LIST[*]}" \
         "${JC_N_FIXED}" \
         "${JC_C2_FIXED}" \
         "${JC_EPSDOT_U_LIST[*]}" \
-        "${DRAG_K0_LIST[*]}" \
-        "${DRAG_M_FIXED}" \
-        "${DRAG_A_FIXED}" \
-        "${DRAG_BETA_G_FIXED}" \
+        "${DRAG_BD_LIST[*]}" \
+        "${DRAG_BD_AL_FIXED}" \
+        "${DRAG_BD_CU_FIXED}" \
+        "${DRAG_RHO_MOBILE_AL_FIXED}" \
+        "${DRAG_RHO_MOBILE_CU_FIXED}" \
+        "${DRAG_BURGERS_AL_FIXED}" \
+        "${DRAG_BURGERS_CU_FIXED}" \
         "${CZM_SCALE_FIXED}" "${CZM_YIELD_FIXED}" "${CZM_DECAY_FIXED}" \
         "${OUTPUT_FREQUENCY_FIXED}" \
         "${ALPHA_LIST_STR:-<default>}" \
@@ -490,9 +504,9 @@ for case_spec in "${CASE_MATRIX[@]}"; do
     for beta_val in "${CURRENT_BETAS[@]}"; do
       for jc_m in "${JC_M_LIST[@]}"; do
         for epsdot_u in "${JC_EPSDOT_U_LIST[@]}"; do
-          for drag_k0 in "${DRAG_K0_LIST[@]}"; do
+          for drag_bd in "${DRAG_BD_LIST[@]}"; do
             for tq in "${TQ_LIST[@]}"; do
-              run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}" "${drag_k0}" "${epsdot_u}"
+              run_one_case "${short_name}" "${vin}" "${alpha_val}" "${beta_val}" "${jc_a}" "${jc_b}" "${jc_c}" "${final_time}" "${tq}" "${jc_m}" "${drag_bd}" "${epsdot_u}"
             done
           done
         done
