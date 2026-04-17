@@ -445,6 +445,7 @@ struct ForceModel<PMB, JohnsonCook, NoFracture, DynamicTemperature,
                                    constant_microconductivity )
     {
     }
+
 };
 
 template <typename TemperatureType>
@@ -493,6 +494,7 @@ struct ForceModel<PMB, JohnsonCook, Fracture, DynamicTemperature,
                                    constant_microconductivity )
     {
     }
+
 };
 
 template <typename ModelType, typename MemorySpace>
@@ -543,6 +545,7 @@ ForceModel( ModelType, JohnsonCook, const double delta, const double K,
     -> ForceModel<ModelType, JohnsonCook, NoFracture, DynamicTemperature,
                   TemperatureType>;
 
+
 template <typename ModelType, typename TemperatureType>
 ForceModel( ModelType, JohnsonCook, const double delta, const double K,
             const double G0, const double A, const double B, const double n,
@@ -561,6 +564,7 @@ ForceModel( ModelType, JohnsonCook, const double delta, const double K,
             const bool constant_microconductivity = true )
     -> ForceModel<ModelType, JohnsonCook, Fracture, DynamicTemperature,
                   TemperatureType>;
+
 
 } // namespace CabanaPD
 

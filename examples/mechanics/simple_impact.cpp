@@ -167,12 +167,25 @@ void coldspray( const std::string filename )
         double r_extend = inputs["contact_horizon_extend_factor"];
         double LJ_r0 = inputs["LJr0"];
         double r0 = LJ_r0 * dx[0]; // lj potential width sigma 1.05dx,
+        double particle_volume = dx[0] * dx[1] * dx[2];
         double beta = inputs["LJbeta"]; 
         double alpha = inputs["LJalpha"]; 
+        double lj_linearize_force_density_cap =
+            inputs.contains( "LJ_linearize_force_density_cap" )
+                ? inputs["LJ_linearize_force_density_cap"].get<double>()
+                : 0.0;
+        double lj_linearize_force_density_max =
+            inputs.contains( "LJ_linearize_force_density_max" )
+                ? inputs["LJ_linearize_force_density_max"].get<double>()
+                : lj_linearize_force_density_cap;
       std::cout << "beta: "
                 << beta << std::endl;
       std::cout << "alpha: "
                 << alpha << std::endl;
+      std::cout << "LJ linearize force density cap: "
+                << lj_linearize_force_density_cap << std::endl;
+      std::cout << "LJ linearize force density max: "
+                << lj_linearize_force_density_max << std::endl;
          // NOTE: dx/2 is when particles first touch.
         r_c *= r0;
         r_extend *= dx[0];
@@ -188,7 +201,11 @@ void coldspray( const std::string filename )
         // std::cout << "m_czm: "
         //         << m_czm << std::endl;
         //NonRepulsiveLJModel
-        contact_type contact_model(delta, r_c, r_extend, K, r0, beta, alpha,c_czm,sy,m_czm);
+        contact_type contact_model( delta, r_c, r_extend, K, r0, beta, alpha,
+                                    particle_volume,
+                                    lj_linearize_force_density_cap,
+                                    lj_linearize_force_density_max, c_czm, sy,
+                                    m_czm );
 
         //HertzianModel contact_model
         //contact_type contact_model( r_c, r_extend, nu, E, e );

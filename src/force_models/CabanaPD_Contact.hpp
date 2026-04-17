@@ -62,6 +62,12 @@ struct NormalRepulsionModel : public ContactModel
     double r0;      // lj potential width sigma 1.05dx
     double beta;    //   β   
     double alpha1;    //     α  
+    double particle_volume;
+    double lj_linearize_force_density_cap;
+    double lj_linearize_r;
+    double lj_linearize_value;
+    double lj_linearize_slope;
+    double lj_linearize_force_density_max;
     
         // parameters for CZM cohesive law
     double c_czm;   // cohesive scaling
@@ -76,6 +82,9 @@ struct NormalRepulsionModel : public ContactModel
                           const double _r0,
                           const double _beta,
                           const double _alpha,
+                          const double _particle_volume,
+                          const double _lj_linearize_force_density_cap,
+                          const double _lj_linearize_force_density_max,
                           const double _c_czm,
                           const double _sy,
                           const double _m_czm )
@@ -85,6 +94,12 @@ struct NormalRepulsionModel : public ContactModel
         , r0( _r0 )
         , beta( _beta )
         , alpha1( _alpha )
+        , particle_volume( _particle_volume )
+        , lj_linearize_force_density_cap( _lj_linearize_force_density_cap )
+        , lj_linearize_r( 0.0 )
+        , lj_linearize_value( 0.0 )
+        , lj_linearize_slope( 0.0 )
+        , lj_linearize_force_density_max( _lj_linearize_force_density_max )
         , c_czm( _c_czm )
         , sy( _sy )
         , m_czm( _m_czm )
@@ -92,6 +107,30 @@ struct NormalRepulsionModel : public ContactModel
         K = _K;
         // This could inherit from PMB (same c)
         c = 18.0 * K / ( 3.1415926  * delta * delta * delta * delta * alpha1);
+
+        if ( lj_linearize_force_density_cap > 0.0 )
+        {
+            const double r_zero = r0 / std::pow( beta, 1.0 / 6.0 );
+            double lo = 1.0e-14;
+            double hi = r_zero;
+            for ( int iter = 0; iter < 100; ++iter )
+            {
+                const double mid = 0.5 * ( lo + hi );
+                if ( rawLJForceDensity( mid, particle_volume ) >
+                     lj_linearize_force_density_cap )
+                    lo = mid;
+                else
+                    hi = mid;
+            }
+            lj_linearize_r = hi;
+            lj_linearize_value =
+                rawLJForceDensity( lj_linearize_r, particle_volume );
+
+            if ( lj_linearize_r > 0.0 )
+                lj_linearize_slope =
+                    ( lj_linearize_value - lj_linearize_force_density_max ) /
+                    lj_linearize_r;
+        }
 
     }
 
@@ -102,11 +141,8 @@ struct NormalRepulsionModel : public ContactModel
          if ( r > radius ) return 0.0;
         // Contact "stretch"
         //const double sc = ( r - radius ) / delta;
-        double alpha = c * r0 * r0 * vol * vol / 72 / pow(beta, 7.0/3.0);
-        double term13 = pow( r0 / r, 13 );
-        double term7  = pow( r0 / r, 7 );
-
-        double Fc = ( (12.0 * alpha)/r0   ) * ( term13 - beta * term7 );
+        const double lj_force_density = linearizedLJForceDensity( r, vol );
+        const double Fc = lj_force_density * vol;
         
         //  CZM attraction (tensile)
         double s = (r - 2.0e-6) / 2.0e-6;
@@ -122,6 +158,39 @@ struct NormalRepulsionModel : public ContactModel
 
         // Normal repulsion uses a 15 factor compared to the PMB force
         return Fc_total/vol;
+    }
+
+  private:
+    KOKKOS_INLINE_FUNCTION
+    double rawLJForceDensity( const double r, const double vol ) const
+    {
+        const double alpha =
+            c * r0 * r0 * vol * vol / 72 / pow( beta, 7.0 / 3.0 );
+        const double term13 = pow( r0 / r, 13 );
+        const double term7 = pow( r0 / r, 7 );
+        return ( ( 12.0 * alpha ) / r0 ) * ( term13 - beta * term7 ) / vol;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    double rawLJForceDensityDerivative( const double r, const double vol ) const
+    {
+        const double alpha =
+            c * r0 * r0 * vol * vol / 72 / pow( beta, 7.0 / 3.0 );
+        const double pref = ( 12.0 * alpha ) / r0;
+        return pref / vol *
+               ( -13.0 * pow( r0, 13 ) / pow( r, 14 ) +
+                 7.0 * beta * pow( r0, 7 ) / pow( r, 8 ) );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    double linearizedLJForceDensity( const double r, const double vol ) const
+    {
+        const double raw = rawLJForceDensity( r, vol );
+        if ( lj_linearize_force_density_cap <= 0.0 || lj_linearize_r <= 0.0 ||
+             r >= lj_linearize_r || raw <= lj_linearize_force_density_cap )
+            return raw;
+
+        return lj_linearize_force_density_max + lj_linearize_slope * r;
     }
 };
 

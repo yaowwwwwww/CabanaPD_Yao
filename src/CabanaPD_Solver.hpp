@@ -618,7 +618,6 @@ class Solver
     int thermal_subcycle_steps;
     // Sometimes necessary to update particles after solver creation.
     ParticleType particles;
-
   protected:
     template <std::size_t NumPrenotch>
     void init_prenotch( Prenotch<NumPrenotch> prenotch )

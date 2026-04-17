@@ -44,10 +44,13 @@ DRAG_BURGERS_CU_FIXED="${DRAG_BURGERS_CU_FIXED:-${DRAG_BURGERS_FIXED}}"
 CZM_SCALE_FIXED=0
 CZM_DECAY_FIXED=1.0
 CZM_YIELD_FIXED=0.05
+LJ_LINEARIZE_FORCE_DENSITY_CAP_FIXED="${LJ_LINEARIZE_FORCE_DENSITY_CAP_FIXED:-1e15}"
+LJ_LINEARIZE_FORCE_DENSITY_MAX_FIXED="${LJ_LINEARIZE_FORCE_DENSITY_MAX_FIXED:-1e16}"
 TQ_LIST_STR="${TQ_LIST_STR:-0 0.9}"
 read -r -a TQ_LIST <<< "${TQ_LIST_STR}"
 OUTPUT_FREQUENCY_FIXED="${OUTPUT_FREQUENCY_FIXED:-200}"
 TIMESTEP_FIXED="${TIMESTEP_FIXED:-1e-11}"
+KEEP_PARTIAL_OUTPUT_ON_FAIL="${KEEP_PARTIAL_OUTPUT_ON_FAIL:-1}"
 
 # Each case: short_name vin alpha beta A B C final_time
 CASE_MATRIX=(
@@ -91,6 +94,14 @@ append_nan() {
 
 clear_staging_outputs() {
   rm -f "${BASE_DIR}"/*.silo "${BASE_DIR}"/*.csv 2>/dev/null || true
+}
+
+archive_staging_outputs() {
+  local case_dir="$1"
+  shopt -s nullglob
+  mv -f "${BASE_DIR}"/*.silo "${case_dir}/" 2>/dev/null || true
+  mv -f "${BASE_DIR}"/*.csv  "${case_dir}/" 2>/dev/null || true
+  shopt -u nullglob
 }
 
 write_case_state() {
@@ -176,6 +187,8 @@ run_one_case() {
     --argjson czm_scale "${CZM_SCALE_FIXED}" \
     --argjson czm_yield "${CZM_YIELD_FIXED}" \
     --argjson czm_decay "${CZM_DECAY_FIXED}" \
+    --argjson lj_linearize_cap "${LJ_LINEARIZE_FORCE_DENSITY_CAP_FIXED}" \
+    --argjson lj_linearize_max "${LJ_LINEARIZE_FORCE_DENSITY_MAX_FIXED}" \
     '
     .ball_initial_velocity.value   = $vin       |
     .LJalpha.value                 = $lj_alpha  |
@@ -194,6 +207,8 @@ run_one_case() {
     .final_time.value              = $final_t   |
     .timestep.value                = $dt        |
     .output_frequency.value        = $out_freq  |
+    .LJ_linearize_force_density_cap.value = $lj_linearize_cap |
+    .LJ_linearize_force_density_max.value = $lj_linearize_max |
     .CZM_cohesive_scaling.value    = $czm_scale |
     .CZM_yield_stretch.value       = $czm_yield |
     .CZM_degradation_rate.value    = $czm_decay
@@ -213,7 +228,17 @@ run_one_case() {
   if [ "${cabana_status}" -ne 0 ]; then
     echo "WARN: CabanaPD failed (${cabana_status}) for ${case_name}"
     write_case_state "${case_dir}" "FAILED_SOLVER" "exit_code=${cabana_status}"
-    clear_staging_outputs
+    if [ "${KEEP_PARTIAL_OUTPUT_ON_FAIL}" = "1" ]; then
+      archive_staging_outputs "${case_dir}"
+      if compgen -G "${case_dir}/particles_*.silo" >/dev/null; then
+        (
+          cd "${case_dir}" || exit 1
+          pvpython "${PY_SCRIPT}" >"${case_csv_log}" 2>&1 || true
+        )
+      fi
+    else
+      clear_staging_outputs
+    fi
     append_nan "${case_name}"
     return 0
   fi
@@ -228,10 +253,7 @@ run_one_case() {
   fi
   write_case_state "${case_dir}" "CSV_DONE" "${case_name}"
 
-  shopt -s nullglob
-  mv -f "${BASE_DIR}"/*.silo "${case_dir}/" 2>/dev/null || true
-  mv -f "${BASE_DIR}"/*.csv  "${case_dir}/" 2>/dev/null || true
-  shopt -u nullglob
+  archive_staging_outputs "${case_dir}"
 
   if ! run_recompute "${case_dir}"; then
     echo "WARN: Octave recompute failed for ${case_name}"

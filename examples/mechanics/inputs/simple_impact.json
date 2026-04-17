@@ -94,7 +94,15 @@
     "value": 0.5
   },
   "LJalpha": {
-    "value": 1E-12
+    "value": 1.5E-6
+  },
+  "LJ_linearize_force_density_cap": {
+    "value": 1.0E15,
+    "unit": "N/m^3"
+  },
+  "LJ_linearize_force_density_max": {
+    "value": 1.0E16,
+    "unit": "N/m^3"
   },
   "LJr0": {
     "value": 0.8

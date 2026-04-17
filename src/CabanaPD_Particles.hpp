@@ -1100,6 +1100,7 @@ class Particles<MemorySpace, ModelType, TemperatureDependent, BaseOutput,
     aosoa_temp_type _aosoa_temp;
 };
 
+
 template <class MemorySpace, class ThermalType, int Dimension>
 class Particles<MemorySpace, Contact, ThermalType, BaseOutput, Dimension>
     : public Particles<MemorySpace, PMB, ThermalType, BaseOutput, Dimension>
@@ -1310,6 +1311,7 @@ class Particles<MemorySpace, Contact, TemperatureDependent, BaseOutput,
 
     aosoa_temp_type _aosoa_temp;
 };
+
 
 template <class MemorySpace, class ModelType, class ThermalType, int Dimension>
 class Particles<MemorySpace, ModelType, ThermalType, EnergyOutput, Dimension>
