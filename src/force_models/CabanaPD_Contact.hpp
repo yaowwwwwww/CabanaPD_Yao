@@ -142,22 +142,22 @@ struct NormalRepulsionModel : public ContactModel
         // Contact "stretch"
         //const double sc = ( r - radius ) / delta;
         const double lj_force_density = linearizedLJForceDensity( r, vol );
-        const double Fc = lj_force_density * vol;
+        // const double Fc = lj_force_density * vol;
         
         //  CZM attraction (tensile)
-        double s = (r - 2.0e-6) / 2.0e-6;
-        double F_czm = 0.0; 
+        // double s = (r - 2.0e-6) / 2.0e-6;
+        // double F_czm = 0.0; 
 
-        if ( s < 0.0 && s >= -sy )
-            F_czm = c_czm * (-s); // linear elastic
-        else if ( s < -sy )
-            F_czm = c_czm * sy * exp( -m_czm * ( -s - sy ) ); // exponential softening
+        // if ( s < 0.0 && s >= -sy )
+        //     F_czm = c_czm * (-s); // linear elastic
+        // else if ( s < -sy )
+        //     F_czm = c_czm * sy * exp( -m_czm * ( -s - sy ) ); // exponential softening
 
         // combine: repulsion (compressive) + CZM attraction (tensile)
-        double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
+        // double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
 
         // Normal repulsion uses a 15 factor compared to the PMB force
-        return Fc_total/vol;
+        return lj_force_density;
     }
 
   private:
@@ -168,7 +168,7 @@ struct NormalRepulsionModel : public ContactModel
             c * r0 * r0 * vol * vol / 72 / pow( beta, 7.0 / 3.0 );
         const double term13 = pow( r0 / r, 13 );
         const double term7 = pow( r0 / r, 7 );
-        return ( ( 12.0 * alpha ) / r0 ) * ( term13 - beta * term7 ) / vol;
+        return ( ( 12.0 * alpha ) / r0 ) * ( beta * term7 - term13 ) / vol;
     }
 
     KOKKOS_INLINE_FUNCTION
