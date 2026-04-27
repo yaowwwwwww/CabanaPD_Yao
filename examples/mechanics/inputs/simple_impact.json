@@ -26,7 +26,7 @@
     "value": [
       0.0,
       0.0,
-      0.000012
+      0.0000125
     ]
   },
   "ball_radius": {
@@ -121,7 +121,7 @@
     "value": true
   },
   "contact_horizon_factor": {
-    "value": 1.5
+    "value": 0.90625
   },
   "contact_horizon_extend_factor": {
     "value": 0.05

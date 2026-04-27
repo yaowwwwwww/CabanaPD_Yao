@@ -100,6 +100,9 @@ run_one_case() {
     --argjson czm_decay "${CZM_DECAY_FIXED}" \
     '
     .ball_initial_velocity.value   = $vin       |
+    .ball_center.value[2]          = 1.25e-5   |
+    .contact_horizon_extend_factor.value = 0.05 |
+    .contact_horizon_factor.value  = ((1.5e-6 - (0.05 * ((.high_corner.value[0] - .low_corner.value[0]) / .num_cells.value[0]))) / (2 * .LJr0.value * ((.high_corner.value[0] - .low_corner.value[0]) / .num_cells.value[0]))) |
     .LJalpha.value                 = $LJalpha   |
     .LJbeta.value                  = $LJbeta    |
     .yield_stress.value            = [ $jc_a, $jc_a ] |
@@ -193,7 +196,7 @@ if [ -n "${RUNS_ROOT_OVERRIDE:-}" ]; then
     SUMMARY_FILE="${RUNS_ROOT}/summary_cor_hmax_recomputed_${DATE_TAG_SHORT}.txt"
   fi
 else
-  RUNS_ROOT="${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}"
+  RUNS_ROOT="${BASE_DIR}/${DATE_TAG}_runs_${RUN_TAG_BASE}"
   mkdir -p "${RUNS_ROOT}"
   SUMMARY_FILE="${RUNS_ROOT}/summary_cor_hmax_recomputed_${DATE_TAG_SHORT}.txt"
 fi

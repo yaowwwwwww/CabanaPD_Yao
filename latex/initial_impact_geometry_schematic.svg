@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="860" viewBox="0 0 1380 860">
+<style>
+  .bg { fill: #ffffff; }
+  .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #111; }
+  .subtitle { font-family: Arial, sans-serif; font-size: 13px; font-weight: 400; fill: #444; }
+  .panel-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #111; }
+  .tick, .note, .legend, .meta { font-family: Arial, sans-serif; font-size: 12px; font-weight: 400; fill: #333; }
+  .axis-label { font-family: Arial, sans-serif; font-size: 14px; font-weight: 400; fill: #222; }
+  .panel { fill: none; stroke: #222; stroke-width: 1.15; }
+  .grid { stroke: #dddddd; stroke-width: 1; }
+  .plate { fill: #a6cee3; stroke: #3b6d8e; stroke-width: 1.4; }
+  .projectile { fill: #f9c784; stroke: #b5621d; stroke-width: 1.6; }
+  .centerline { stroke: #666; stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .arrow { stroke: #cc2b2b; stroke-width: 2.8; }
+  .arrow-fill { fill: #cc2b2b; }
+  .dim { stroke: #444; stroke-width: 1.4; }
+  .dim-fill { fill: #444; }
+  .meta-box { fill: #f7f7f7; stroke: #c8c8c8; stroke-width: 1; }
+</style>
+<rect width="1380" height="860" class="bg"/>
+<text x="690.0" y="36" text-anchor="middle" class="title">Initial Impact Geometry Setup</text>
+<text x="690.0" y="60" text-anchor="middle" class="subtitle">Rep. case: v0 = 100 m/s | 2026-04-22 B2p82e8 scan | same geometry for all cases</text>
+<rect x="105" y="120" width="520" height="520" class="panel"/>
+<text x="105" y="106" class="panel-title">Full Domain (x-z cross-section)</text>
+<rect x="715" y="120" width="520" height="520" class="panel"/>
+<text x="715" y="106" class="panel-title">Zoom Near Impact Region</text>
+<line x1="105.00" y1="120" x2="105.00" y2="640" class="grid"/>
+<text x="105.00" y="662" text-anchor="middle" class="tick">-30</text>
+<line x1="191.67" y1="120" x2="191.67" y2="640" class="grid"/>
+<text x="191.67" y="662" text-anchor="middle" class="tick">-20</text>
+<line x1="278.33" y1="120" x2="278.33" y2="640" class="grid"/>
+<text x="278.33" y="662" text-anchor="middle" class="tick">-10</text>
+<line x1="365.00" y1="120" x2="365.00" y2="640" class="grid"/>
+<text x="365.00" y="662" text-anchor="middle" class="tick">0.0</text>
+<line x1="451.67" y1="120" x2="451.67" y2="640" class="grid"/>
+<text x="451.67" y="662" text-anchor="middle" class="tick">10</text>
+<line x1="538.33" y1="120" x2="538.33" y2="640" class="grid"/>
+<text x="538.33" y="662" text-anchor="middle" class="tick">20</text>
+<line x1="625.00" y1="120" x2="625.00" y2="640" class="grid"/>
+<text x="625.00" y="662" text-anchor="middle" class="tick">30</text>
+<line x1="105" y1="640.00" x2="625" y2="640.00" class="grid"/>
+<text x="93" y="644.00" text-anchor="end" class="tick">-30</text>
+<line x1="105" y1="553.33" x2="625" y2="553.33" class="grid"/>
+<text x="93" y="557.33" text-anchor="end" class="tick">-20</text>
+<line x1="105" y1="466.67" x2="625" y2="466.67" class="grid"/>
+<text x="93" y="470.67" text-anchor="end" class="tick">-10</text>
+<line x1="105" y1="380.00" x2="625" y2="380.00" class="grid"/>
+<text x="93" y="384.00" text-anchor="end" class="tick">0.0</text>
+<line x1="105" y1="293.33" x2="625" y2="293.33" class="grid"/>
+<text x="93" y="297.33" text-anchor="end" class="tick">10</text>
+<line x1="105" y1="206.67" x2="625" y2="206.67" class="grid"/>
+<text x="93" y="210.67" text-anchor="end" class="tick">20</text>
+<line x1="105" y1="120.00" x2="625" y2="120.00" class="grid"/>
+<text x="93" y="124.00" text-anchor="end" class="tick">30</text>
+<text x="365.00" y="684" text-anchor="middle" class="axis-label">x (um)</text>
+<text x="47.00" y="380.00" text-anchor="middle" class="axis-label" transform="rotate(-90 47.00 380.00)">z (um)</text>
+<line x1="715.00" y1="120" x2="715.00" y2="640" class="grid"/>
+<text x="715.00" y="662" text-anchor="middle" class="tick">-18</text>
+<line x1="801.67" y1="120" x2="801.67" y2="640" class="grid"/>
+<text x="801.67" y="662" text-anchor="middle" class="tick">-12</text>
+<line x1="888.33" y1="120" x2="888.33" y2="640" class="grid"/>
+<text x="888.33" y="662" text-anchor="middle" class="tick">-6.0</text>
+<line x1="975.00" y1="120" x2="975.00" y2="640" class="grid"/>
+<text x="975.00" y="662" text-anchor="middle" class="tick">0.0</text>
+<line x1="1061.67" y1="120" x2="1061.67" y2="640" class="grid"/>
+<text x="1061.67" y="662" text-anchor="middle" class="tick">6.0</text>
+<line x1="1148.33" y1="120" x2="1148.33" y2="640" class="grid"/>
+<text x="1148.33" y="662" text-anchor="middle" class="tick">12</text>
+<line x1="1235.00" y1="120" x2="1235.00" y2="640" class="grid"/>
+<text x="1235.00" y="662" text-anchor="middle" class="tick">18</text>
+<line x1="715" y1="640.00" x2="1235" y2="640.00" class="grid"/>
+<text x="703" y="644.00" text-anchor="end" class="tick">-32</text>
+<line x1="715" y1="553.33" x2="1235" y2="553.33" class="grid"/>
+<text x="703" y="557.33" text-anchor="end" class="tick">-22</text>
+<line x1="715" y1="466.67" x2="1235" y2="466.67" class="grid"/>
+<text x="703" y="470.67" text-anchor="end" class="tick">-12</text>
+<line x1="715" y1="380.00" x2="1235" y2="380.00" class="grid"/>
+<text x="703" y="384.00" text-anchor="end" class="tick">-1.5</text>
+<line x1="715" y1="293.33" x2="1235" y2="293.33" class="grid"/>
+<text x="703" y="297.33" text-anchor="end" class="tick">8.7</text>
+<line x1="715" y1="206.67" x2="1235" y2="206.67" class="grid"/>
+<text x="703" y="210.67" text-anchor="end" class="tick">19</text>
+<line x1="715" y1="120.00" x2="1235" y2="120.00" class="grid"/>
+<text x="703" y="124.00" text-anchor="end" class="tick">29</text>
+<text x="975.00" y="684" text-anchor="middle" class="axis-label">x (um)</text>
+<text x="657.00" y="380.00" text-anchor="middle" class="axis-label" transform="rotate(-90 657.00 380.00)">z (um)</text>
+<rect x="105.00" y="380.00" width="520.00" height="260.00" class="plate"/>
+<circle cx="365.00" cy="276.00" r="95.33" class="projectile"/>
+<line x1="365.00" y1="640.00" x2="365.00" y2="180.67" class="centerline"/>
+<rect x="715.00" y="367.21" width="520.00" height="255.74" class="plate"/>
+<circle cx="975.00" cy="264.92" r="158.89" class="projectile"/>
+<line x1="975.00" y1="622.95" x2="975.00" y2="171.15" class="centerline"/>
+<line x1="975.00" y1="132.79" x2="975.00" y2="164.33" class="arrow"/>
+<polygon points="975.00,164.33 968.00,152.33 982.00,152.33" class="arrow-fill"/>
+<text x="989.00" y="128.79" class="note">initial velocity = 100 m/s</text>
+<text x="1149.89" y="258.92" class="note">projectile</text>
+<text x="1149.89" y="435.41" class="note">substrate plate</text>
+<line x1="981.00" y1="358.69" x2="981.00" y2="171.15" class="dim"/>
+<polygon points="981.00,358.69 985.00,350.69 977.00,350.69" class="dim-fill"/>
+<polygon points="981.00,171.15 985.00,179.15 977.00,179.15" class="dim-fill"/>
+<text x="995.00" y="264.92" text-anchor="middle" class="note">diameter = 22.00 um</text>
+<line x1="807.67" y1="367.21" x2="807.67" y2="358.69" class="dim"/>
+<polygon points="807.67,367.21 811.67,359.21 803.67,359.21" class="dim-fill"/>
+<polygon points="807.67,358.69 811.67,366.69 803.67,366.69" class="dim-fill"/>
+<text x="821.67" y="362.95" text-anchor="middle" class="note">initial gap = 1.00 um</text>
+<line x1="1183.22" y1="622.95" x2="1183.22" y2="367.21" class="dim"/>
+<polygon points="1183.22,622.95 1187.22,614.95 1179.22,614.95" class="dim-fill"/>
+<polygon points="1183.22,367.21 1187.22,375.21 1179.22,375.21" class="dim-fill"/>
+<text x="1197.22" y="495.08" text-anchor="middle" class="note">plate thickness = 30.00 um</text>
+<rect x="105" y="730" width="1170" height="150" rx="6" ry="6" class="meta-box"/>
+<text x="129" y="764" class="meta">domain x:</text>
+<text x="239" y="764" class="meta">-30.00 um to 30.00 um</text>
+<text x="535" y="764" class="meta">domain z:</text>
+<text x="645" y="764" class="meta">-30.00 um to 30.00 um</text>
+<text x="925" y="764" class="meta">grid:</text>
+<text x="1035" y="764" class="meta">60 x 60 x 60 cells</text>
+<text x="129" y="790" class="meta">cell size:</text>
+<text x="239" y="790" class="meta">1.00 um</text>
+<text x="535" y="790" class="meta">ball center:</text>
+<text x="645" y="790" class="meta">(x,z) = (0.00 um, 12.00 um)</text>
+<text x="925" y="790" class="meta">ball radius:</text>
+<text x="1035" y="790" class="meta">11.00 um</text>
+<text x="129" y="816" class="meta">plate top:</text>
+<text x="239" y="816" class="meta">0.00 um</text>
+<text x="535" y="816" class="meta">plate bottom:</text>
+<text x="645" y="816" class="meta">-30.00 um</text>
+<text x="925" y="816" class="meta">horizon:</text>
+<text x="1035" y="816" class="meta">1.50 um</text>
+<text x="129" y="842" class="meta">applies to scan:</text>
+<text x="239" y="842" class="meta">geometry same across all cases in this run set</text>
+</svg>

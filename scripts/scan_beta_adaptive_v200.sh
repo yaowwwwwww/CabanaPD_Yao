@@ -16,7 +16,7 @@ TQ="${TQ:-0}"
 OUT_FREQ="${OUT_FREQ:-200}"
 DT="${DT:-1e-11}"
 
-ANCHOR_SUMMARY="${ANCHOR_SUMMARY:-${BASE_DIR}/runs_eq16_scan_beta_0p1_0p5_0p9_v200_alpha1p5e-6_2026-04-15_20-02/summary_cor_hmax_recomputed_2026Apr15-20-02.txt}"
+ANCHOR_SUMMARY="${ANCHOR_SUMMARY:-${BASE_DIR}/2026-04-15_20-02_runs_eq16_scan_beta_0p1_0p5_0p9_v200_alpha1p5e-6/summary_cor_hmax_recomputed_2026Apr15-20-02.txt}"
 
 PRIMARY_BETAS="${PRIMARY_BETAS:-0.2 0.3 0.4}"
 

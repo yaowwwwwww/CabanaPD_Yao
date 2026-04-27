@@ -6,17 +6,17 @@
 set -u
 set -o pipefail
 
-ROOT_DIR="/home/wuwen/program/CabanaPD_Yao"
-INPUT_JSON_TEMPLATE="${ROOT_DIR}/examples/mechanics/inputs/simple_impact_thermal.json"
-CABANAPD_EXE="${ROOT_DIR}/build/examples/mechanics/ColdSprayImpactThermal"
-PY_SCRIPT="${ROOT_DIR}/scripts/silo2csv.py"
-OCT_SCRIPT="${ROOT_DIR}/scripts/avg-velocity.m"
-BASE_DIR="${ROOT_DIR}/build"
+ROOT_DIR="${ROOT_DIR:-/home/wuwen/program/CabanaPD_Yao}"
+INPUT_JSON_TEMPLATE="${INPUT_JSON_TEMPLATE:-${ROOT_DIR}/examples/mechanics/inputs/simple_impact_thermal.json}"
+CABANAPD_EXE="${CABANAPD_EXE:-${ROOT_DIR}/build/examples/mechanics/ColdSprayImpactThermal}"
+PY_SCRIPT="${PY_SCRIPT:-${ROOT_DIR}/scripts/silo2csv.py}"
+OCT_SCRIPT="${OCT_SCRIPT:-${ROOT_DIR}/scripts/avg-velocity.m}"
+BASE_DIR="${BASE_DIR:-${ROOT_DIR}/build}"
 
 RUN_TAG_BASE="${RUN_TAG_BASE:-tq_effect_m0_archive_compare}"
 DATE_TAG="$(date +"%Y-%m-%d_%H-%M")"
 DATE_TAG_SHORT="$(date +"%Y%b%d-%H-%M")"
-RUNS_ROOT_DEFAULT="${BASE_DIR}/runs_${RUN_TAG_BASE}_${DATE_TAG}"
+RUNS_ROOT_DEFAULT="${BASE_DIR}/${DATE_TAG}_runs_${RUN_TAG_BASE}"
 RUNS_ROOT="${RUNS_ROOT_OVERRIDE:-${RUNS_ROOT_DEFAULT}}"
 SUMMARY_FILE_DEFAULT="${RUNS_ROOT}/summary_cor_hmax_recomputed_${DATE_TAG_SHORT}.txt"
 SUMMARY_FILE="${SUMMARY_FILE_OVERRIDE:-${SUMMARY_FILE_DEFAULT}}"
@@ -191,6 +191,9 @@ run_one_case() {
     --argjson lj_linearize_max "${LJ_LINEARIZE_FORCE_DENSITY_MAX_FIXED}" \
     '
     .ball_initial_velocity.value   = $vin       |
+    .ball_center.value[2]          = 1.25e-5   |
+    .contact_horizon_extend_factor.value = 0.05 |
+    .contact_horizon_factor.value  = ((1.5e-6 - (0.05 * ((.high_corner.value[0] - .low_corner.value[0]) / .num_cells.value[0]))) / (2 * .LJr0.value * ((.high_corner.value[0] - .low_corner.value[0]) / .num_cells.value[0]))) |
     .LJalpha.value                 = $lj_alpha  |
     .LJbeta.value                  = $lj_beta   |
     .yield_stress.value            = [ $jc_a, $jc_a ] |

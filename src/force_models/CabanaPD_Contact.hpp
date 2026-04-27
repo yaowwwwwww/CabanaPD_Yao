@@ -68,6 +68,7 @@ struct NormalRepulsionModel : public ContactModel
     double lj_linearize_value;
     double lj_linearize_slope;
     double lj_linearize_force_density_max;
+    double lj_linearize_force_density_at_zero;
     
         // parameters for CZM cohesive law
     double c_czm;   // cohesive scaling
@@ -100,6 +101,7 @@ struct NormalRepulsionModel : public ContactModel
         , lj_linearize_value( 0.0 )
         , lj_linearize_slope( 0.0 )
         , lj_linearize_force_density_max( _lj_linearize_force_density_max )
+        , lj_linearize_force_density_at_zero( 0.0 )
         , c_czm( _c_czm )
         , sy( _sy )
         , m_czm( _m_czm )
@@ -113,23 +115,45 @@ struct NormalRepulsionModel : public ContactModel
             const double r_zero = r0 / std::pow( beta, 1.0 / 6.0 );
             double lo = 1.0e-14;
             double hi = r_zero;
-            for ( int iter = 0; iter < 100; ++iter )
-            {
-                const double mid = 0.5 * ( lo + hi );
-                if ( rawLJForceDensity( mid, particle_volume ) >
-                     lj_linearize_force_density_cap )
-                    lo = mid;
-                else
-                    hi = mid;
-            }
-            lj_linearize_r = hi;
-            lj_linearize_value =
-                rawLJForceDensity( lj_linearize_r, particle_volume );
+            const double raw_lo = rawLJForceDensity( lo, particle_volume );
+            const bool repulsion_is_negative = raw_lo < 0.0;
+            const double cap =
+                repulsion_is_negative ? -lj_linearize_force_density_cap
+                                      : lj_linearize_force_density_cap;
 
-            if ( lj_linearize_r > 0.0 )
-                lj_linearize_slope =
-                    ( lj_linearize_value - lj_linearize_force_density_max ) /
-                    lj_linearize_r;
+            if ( repulsion_is_negative )
+                lj_linearize_force_density_at_zero =
+                    -lj_linearize_force_density_max;
+            else
+                lj_linearize_force_density_at_zero =
+                    lj_linearize_force_density_max;
+
+            const bool cap_is_reached =
+                repulsion_is_negative ? raw_lo < cap : raw_lo > cap;
+            if ( cap_is_reached )
+            {
+                for ( int iter = 0; iter < 100; ++iter )
+                {
+                    const double mid = 0.5 * ( lo + hi );
+                    const double raw_mid =
+                        rawLJForceDensity( mid, particle_volume );
+                    const bool above_cap =
+                        repulsion_is_negative ? raw_mid < cap : raw_mid > cap;
+                    if ( above_cap )
+                        lo = mid;
+                    else
+                        hi = mid;
+                }
+                lj_linearize_r = hi;
+                lj_linearize_value =
+                    rawLJForceDensity( lj_linearize_r, particle_volume );
+
+                if ( lj_linearize_r > 0.0 )
+                    lj_linearize_slope =
+                        ( lj_linearize_value -
+                          lj_linearize_force_density_at_zero ) /
+                        lj_linearize_r;
+            }
         }
 
     }
@@ -178,7 +202,7 @@ struct NormalRepulsionModel : public ContactModel
             c * r0 * r0 * vol * vol / 72 / pow( beta, 7.0 / 3.0 );
         const double pref = ( 12.0 * alpha ) / r0;
         return pref / vol *
-               ( -13.0 * pow( r0, 13 ) / pow( r, 14 ) +
+               ( 13.0 * pow( r0, 13 ) / pow( r, 14 ) -
                  7.0 * beta * pow( r0, 7 ) / pow( r, 8 ) );
     }
 
@@ -187,10 +211,17 @@ struct NormalRepulsionModel : public ContactModel
     {
         const double raw = rawLJForceDensity( r, vol );
         if ( lj_linearize_force_density_cap <= 0.0 || lj_linearize_r <= 0.0 ||
-             r >= lj_linearize_r || raw <= lj_linearize_force_density_cap )
+             r >= lj_linearize_r )
             return raw;
 
-        return lj_linearize_force_density_max + lj_linearize_slope * r;
+        if ( lj_linearize_force_density_at_zero < 0.0 )
+        {
+            if ( raw >= -lj_linearize_force_density_cap ) return raw;
+        }
+        else if ( raw <= lj_linearize_force_density_cap )
+            return raw;
+
+        return lj_linearize_force_density_at_zero + lj_linearize_slope * r;
     }
 };
 

@@ -1,0 +1,2 @@
+# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)
+CabanaPD_Yao  -3.000000e+02  0.000000e+00  0.000000e+00  6.519750e-01  0.000000e+00  1  5.748584e-06  4.751009e-11  3.893999e-06

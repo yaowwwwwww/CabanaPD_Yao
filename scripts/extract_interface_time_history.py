@@ -1,108 +1,70 @@
-#!/usr/bin/env python3
-import csv
-import json
-import math
-import re
-import sys
-from pathlib import Path
+#!/usr/bin/env bash
 
+set -e
+set -u
+set -o pipefail
 
-def frame_id(path: Path) -> int:
-    m = re.match(r"particles_(\d+)_all\.csv$", path.name)
-    if not m:
-        raise ValueError(f"unexpected file name: {path.name}")
-    return int(m.group(1))
+ROOT="/home/wuwen/program/CabanaPD_Yao"
+BUILD="${ROOT}/build"
 
+INPUT_JSON="${ROOT}/examples/mechanics/inputs/simple_impact_thermal.json"
+EXE="${BUILD}/examples/mechanics/ColdSprayImpactThermal"
+SILO2CSV="${ROOT}/scripts/silo2csv.py"
+AVG_M="${ROOT}/scripts/avg-velocity.m"
 
-def mean_or_nan(values):
-    if not values:
-        return float("nan")
-    return sum(values) / len(values)
+DATE_TAG="$(date +"%Y-%m-%d_%H-%M")"
+RUN_DIR="${BUILD}/${DATE_TAG}_runs_json_target_v100_600"
+SUMMARY_FILE="${RUN_DIR}/summary_velocity_scan.txt"
 
+mkdir -p "${RUN_DIR}"
 
-def main() -> int:
-    if len(sys.argv) != 3:
-        print("usage: extract_interface_time_history.py <case_dir> <out_tsv>", file=sys.stderr)
-        return 2
+cat > "${SUMMARY_FILE}" <<EOF
+# case_name    vin(m/s)    vout(m/s)    CoR    Lateralmax    h_max(m)    best_frame    h_residual(m)    A_residual(m2)    h_mean_residual(m)
+EOF
 
-    case_dir = Path(sys.argv[1])
-    out_tsv = Path(sys.argv[2])
+if command -v octave-cli >/dev/null 2>&1; then
+    OCTAVE_CMD="octave-cli"
+elif command -v octave >/dev/null 2>&1; then
+    OCTAVE_CMD="octave"
+else
+    echo "ERROR: octave or octave-cli not found"
+    exit 1
+fi
 
-    with (case_dir / "input.json").open("r", encoding="utf-8") as f:
-        inp = json.load(f)
+for v in $(seq 100 50 600); do
+    case_name="vin_${v}"
+    case_dir="${RUN_DIR}/${case_name}"
+    work_json="${case_dir}/input.json"
 
-    dt = float(inp["timestep"]["value"])
-    out_freq = int(inp["output_frequency"]["value"])
+    echo
+    echo "========== Running ${case_name} =========="
 
-    csv_files = sorted(case_dir.glob("particles_*_all.csv"), key=frame_id)
+    mkdir -p "${case_dir}"
 
-    with out_tsv.open("w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f, delimiter="\t")
-        w.writerow(
-            [
-                "frame",
-                "time_s",
-                "count",
-                "mean_yield_stress_Pa",
-                "mean_plastic_strain",
-                "mean_plastic_strain_rate_1_per_s",
-                "mean_temperature_K",
-            ]
-        )
+    rm -f "${BUILD}"/*.silo "${BUILD}"/*.csv
 
-        for csv_path in csv_files:
-            frame = frame_id(csv_path)
-            ys_vals = []
-            eps_vals = []
-            edot_vals = []
-            temp_vals = []
+    jq --indent 2 \
+        --argjson vin "${v}" \
+        '.ball_initial_velocity.value = $vin' \
+        "${INPUT_JSON}" > "${work_json}"
 
-            with csv_path.open("r", encoding="utf-8", newline="") as fp:
-                rd = csv.DictReader(fp)
-                for row in rd:
-                    try:
-                        typ = int(float(row["rank_0/type"]))
-                        z = float(row["Points:2"])
-                    except Exception:
-                        continue
+    cd "${BUILD}"
 
-                    if typ != 0:
-                        continue
-                    if not (-2.0e-6 <= z <= 0.0):
-                        continue
+    "${EXE}" "${work_json}" 2>&1 | tee "${case_dir}/cabana_output.log"
 
-                    try:
-                        ys = float(row["rank_0/yield_stress"])
-                        eps = float(row["rank_0/plastic_strain"])
-                        edot = float(row["rank_0/plastic_strain_rate"])
-                        temp = float(row["rank_0/temperature"])
-                    except Exception:
-                        continue
+    pvpython "${SILO2CSV}" 2>&1 | tee "${case_dir}/csv_conversion.log"
 
-                    if math.isfinite(ys):
-                        ys_vals.append(ys)
-                    if math.isfinite(eps):
-                        eps_vals.append(eps)
-                    if math.isfinite(edot):
-                        edot_vals.append(edot)
-                    if math.isfinite(temp):
-                        temp_vals.append(temp)
+    mv -f "${BUILD}"/*.silo "${case_dir}/" 2>/dev/null || true
+    mv -f "${BUILD}"/*.csv  "${case_dir}/" 2>/dev/null || true
 
-            w.writerow(
-                [
-                    frame,
-                    f"{frame * dt * out_freq:.8e}",
-                    len(ys_vals),
-                    f"{mean_or_nan(ys_vals):.8e}",
-                    f"{mean_or_nan(eps_vals):.8e}",
-                    f"{mean_or_nan(edot_vals):.8e}",
-                    f"{mean_or_nan(temp_vals):.8e}",
-                ]
-            )
+    SUMMARY_FILE="${SUMMARY_FILE}" SINGLE_CASE_DIR="${case_dir}" \
+        "${OCTAVE_CMD}" --no-gui --quiet --eval "source('${AVG_M}'); fflush(stdout);" \
+        2>&1 | tee "${case_dir}/avg_velocity.log"
 
-    print(out_tsv)
-    return 0
+    echo "Done: ${case_dir}"
+done
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+echo
+echo "All done."
+echo "Run dir: ${RUN_DIR}"
+echo "Summary: ${SUMMARY_FILE}"

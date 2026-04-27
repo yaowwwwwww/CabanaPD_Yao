@@ -289,9 +289,9 @@ void coldspray_thermal( const std::string filename )
         r_c *= r0;
         r_extend *= dx[0];
  
-        double c_czm=inputs["CZM_cohesive_scaling"];  // CZM contact parameters,
-        double sy = inputs["CZM_yield_stretch"]; 
-        double m_czm = inputs["CZM_degradation_rate"]; 
+        double c_czm = 1; // inputs["CZM_cohesive_scaling"];
+        double sy = 2;    // inputs["CZM_yield_stretch"];
+        double m_czm = 3; // inputs["CZM_degradation_rate"];
 
         // std::cout << "c_czm: "
         //         << c_czm << std::endl;
