@@ -159,25 +159,17 @@ substrate_type = 1;
         fclose(fout_vmag);
     end
 
-    % --------- compute vin / vout / CoR ---------
-    if all(isnan(vavg))
-        vin  = NaN;
-        vout = NaN;
-        CoR  = NaN;
-    else
-        N_in = min(10, length(vavg));   %#ok<NASGU>
-        vin = mean(vavg(1:1));          % keep your original convention
+    % --------- simplest CoR: last frame / first frame ---------
+if all(isnan(vavg))
+    vin  = NaN;
+    vout = NaN;
+    CoR  = NaN;
+else
+    vin  = vavg(1);          % 初始速度（第一帧）
+    vout = vavg(end);        % 最后一帧速度
 
-        % sign change (negative -> positive)
-        sign_change_idx = find(vavg(1:end-1) < 0 & vavg(2:end) > 0, 1);
-
-        if ~isempty(sign_change_idx)
-            vout = mean(vavg(sign_change_idx+1:end));
-        else
-            vout = 0;
-        end
-        CoR = abs(vout / vin);
-    end
+    CoR = abs(vout / vin);   % 恢复系数
+end
 
     Lateralmax = max(dcoef);
 
@@ -255,11 +247,7 @@ substrate_type = 1;
         end
 
         % --------- 选择“最大压痕帧” = 速度反向一瞬间 ---------
-        if exist('sign_change_idx', 'var') && ~isempty(sign_change_idx)
-            h_idx = sign_change_idx;
-        else
-            [~, h_idx] = min(vavg);   % 最负速度
-        end
+        [~, h_idx] = min(vavg);   % 最大撞击阶段：z速度最负的帧
 
         % --------- 在这一帧上计算压痕 ---------
         data_k = csvread(files(h_idx).name, 1, 0);

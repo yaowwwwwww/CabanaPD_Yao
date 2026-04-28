@@ -109,19 +109,19 @@ struct NormalRepulsionModel : public ContactModel
         double Fc = ( (12.0 * alpha)/r0   ) * ( term13 - beta * term7 );
         
         //  CZM attraction (tensile)
-        double s = (r - 2.0e-6) / 2.0e-6;
-        double F_czm = 0.0; 
+       //  double s = (r - 2.0e-6) / 2.0e-6;
+       //  double F_czm = 0.0; 
 
-        if ( s < 0.0 && s >= -sy )
-            F_czm = c_czm * (-s); // linear elastic
-        else if ( s < -sy )
-            F_czm = c_czm * sy * exp( -m_czm * ( -s - sy ) ); // exponential softening
+        // if ( s < 0.0 && s >= -sy )
+        //     F_czm = c_czm * (-s); // linear elastic
+        // else if ( s < -sy )
+        //     F_czm = c_czm * sy * exp( -m_czm * ( -s - sy ) ); // exponential softening
 
         // combine: repulsion (compressive) + CZM attraction (tensile)
-        double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
+       //  double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
 
         // Normal repulsion uses a 15 factor compared to the PMB force
-        return Fc_total/vol;
+        return -Fc/vol;
     }
 };
 
