@@ -11,6 +11,9 @@ INPUT_JSON="${ROOT}/examples/mechanics/inputs/simple_impact_thermal.json"
 EXE="${BUILD}/examples/mechanics/ColdSprayImpactThermal"
 SILO2CSV="${ROOT}/scripts/silo2csv.py"
 AVG_M="${ROOT}/scripts/avg-velocity.m"
+if [ ! -f "${AVG_M}" ]; then
+    AVG_M="${ROOT}/src/avg-velocity.m"
+fi
 
 DATE_TAG="$(date +"%Y-%m-%d_%H-%M")"
 RUN_DIR="${BUILD}/${DATE_TAG}_runs_json_target_v100_600"
@@ -31,9 +34,9 @@ else
     exit 1
 fi
 
-for alpha in 1e-7 5e-7 1e-6; do
-for beta in 0.3 0.5 0.7; do
-for v in 100 600; do
+for alpha in 9e-5; do
+for beta in 0.5; do
+for v in 600; do
 
     case_name="v_${v}_a_${alpha}_b_${beta}"
     case_dir="${RUN_DIR}/${case_name}"

@@ -121,7 +121,7 @@ struct NormalRepulsionModel : public ContactModel
        //  double Fc_total = Fc- F_czm;  // note minus: CZM acts in opposite (tensile) direction
 
         // Normal repulsion uses a 15 factor compared to the PMB force
-        return -Fc/vol;
+        return Fc/vol;
     }
 };
 

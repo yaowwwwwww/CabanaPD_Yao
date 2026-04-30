@@ -78,8 +78,8 @@
   },
   "jc_B": {
     "value": [
-      2.92E+8,
-      2.92E+8
+      2.92E+9,
+      2.92E+9
     ],
     "unit": "Pa"
   },
@@ -223,7 +223,7 @@
     "value": 0.05
   },
   "final_time": {
-    "value": 1E-7,
+    "value": 2E-7,
     "unit": "s"
   },
   "timestep": {

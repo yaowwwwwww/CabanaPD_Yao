@@ -160,16 +160,16 @@ substrate_type = 1;
     end
 
     % --------- simplest CoR: last frame / first frame ---------
-if all(isnan(vavg))
-    vin  = NaN;
-    vout = NaN;
-    CoR  = NaN;
-else
-    vin  = vavg(1);          % 初始速度（第一帧）
-    vout = vavg(end);        % 最后一帧速度
+    if all(isnan(vavg))
+        vin  = NaN;
+        vout = NaN;
+        CoR  = NaN;
+    else
+        vin  = vavg(1);          % 初始速度（第一帧）
+        vout = vavg(end);        % 最后一帧速度
 
-    CoR = abs(vout / vin);   % 恢复系数
-end
+        CoR = vout / vin;   % 恢复系数
+    end
 
     Lateralmax = max(dcoef);
 

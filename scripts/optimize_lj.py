@@ -16,7 +16,7 @@ RUN_SCRIPT = "/home/wuwen/program/CabanaPD_Yao/scripts/automaticallyscanljparame
 LOG_FILE = Path("optimization_lj_log.csv")
 
 BAD_LOSS = 1.0
-FIXED_ALPHA = 1.5e-6
+FIXED_ALPHA = 1.0e-6
 
 FAILED_BETA = []
 
@@ -24,7 +24,7 @@ def run_case(alpha: float, beta: float, vin: int) -> float:
     cmd = [
         RUN_SCRIPT,
         f"{alpha:.2e}",
-        f"{beta:.5f}",
+        f"{beta:.3f}",
         str(vin),
     ]
 
@@ -53,12 +53,12 @@ def objective(x):
 
     beta = x[0]
  
-    beta = max(0.0001, round(beta, 5))
+    beta = max(0.01, round(beta, 3))
     alpha= FIXED_ALPHA
     #alpha = 10.0 ** log10_alpha
     for b_fail in FAILED_BETA:
-        if abs(beta - b_fail) < 0.0002:
-            print(f"Skip unstable beta={beta:.5f}, near failed beta={b_fail:.5f}")
+        if abs(beta - b_fail) < 0.05:
+            print(f"Skip unstable beta={beta:.3f}, near failed beta={b_fail:.3f}")
             return BAD_LOSS
     cor100 = run_case(alpha, beta, 100)
     if math.isnan(cor100):
@@ -69,14 +69,14 @@ def objective(x):
 
     if math.isnan(cor600):
         FAILED_BETA.append(beta)
-        loss = 0.8
+        loss = 1.0
     else:
         loss_100 = max(0.0, 0.14 + cor100) ** 2
-        loss_600 = min(0.0, -cor600 - 0.03) ** 2
+        loss_600 = cor600**2
         loss = loss_100 + loss_600
 
     line = (
-        f"{alpha:.3e},{beta:.5f},"
+        f"{alpha:.3e},{beta:.3f},"
         f"{cor100},{cor600},{loss:.5e}\n"
     )
 
@@ -84,7 +84,7 @@ def objective(x):
         f.write(line)
 
     print(
-        f"alpha={alpha:.3e}, beta={beta:.5f}, "
+        f"alpha={alpha:.3e}, beta={beta:.3f}, "
         f"CoR100={cor100}, CoR600={cor600}, "
         f"loss={loss:.5e}",
         flush=True,
@@ -98,7 +98,7 @@ def main():
 
     space = [
         #Real(-8.0, -5.0, name="log10_alpha"),  # alpha = 1e-8 ~ 1e-5
-        Real(0.0001, 1.0, name="beta"),
+        Real(0.1, 1.0, name="beta"),
     ]
 
     result = gp_minimize(
@@ -111,12 +111,12 @@ def main():
 
  #   best_log_alpha, best_beta = result.x
  #   best_log_alpha = round(best_log_alpha, 1)
-    best_beta = round(result.x[0], 5)
+    best_beta = round(result.x[0], 3)
     best_alpha = FIXED_ALPHA
 
     print("\nBest result:")
     print(f"alpha = {best_alpha:.3e}")
-    print(f"beta  = {best_beta:.5f}")
+    print(f"beta  = {best_beta:.3f}")
     print(f"loss  = {result.fun:.5e}")
     print(f"log   = {LOG_FILE}")
 
