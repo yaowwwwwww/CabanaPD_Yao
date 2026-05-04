@@ -7,7 +7,7 @@ set -o pipefail
 ROOT="/home/wuwen/program/CabanaPD_Yao"
 BUILD="${ROOT}/build"
 
-INPUT_JSON="${ROOT}/examples/mechanics/inputs/simple_impact_thermal.json"
+INPUT_JSON="${ROOT}/examples/mechanics/inputs/Lucas-2021-IJMS.json"
 EXE="${BUILD}/examples/mechanics/ColdSprayImpactThermal"
 SILO2CSV="${ROOT}/scripts/silo2csv.py"
 AVG_M="${ROOT}/scripts/avg-velocity.m"
@@ -46,7 +46,8 @@ fi
 
 for alpha in 3e-5; do
 for beta in 0.5; do
-for v in 100 150 200 250 300 400 500 500 600; do
+
+for v in 200; do
 
     case_name="v_${v}_a_${alpha}_b_${beta}"
     case_dir="${RUN_DIR}/${case_name}"

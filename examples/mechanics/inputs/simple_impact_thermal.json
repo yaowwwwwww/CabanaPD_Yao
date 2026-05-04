@@ -19,7 +19,7 @@
   "jc_C2": { "value": [0.908, 0.908] },
   "jc_epsdot0": { "value": [1.0, 1.0], "unit": "1/s" },
   "jc_epsdot_u": { "value": [680000.0, 680000.0], "unit": "1/s" },
-  "drag_Bd": { "value": [0, 0], "unit": "Pa*s" },
+  "drag_Bd": { "value": [1e-5, 1e-5], "unit": "Pa*s" },
   "drag_mobile_dislocation_density": { "value": [1.0e13, 1.0e13], "unit": "m^{-2}" },
   "drag_burgers_vector": { "value": [2.86e-10, 2.56e-10], "unit": "m" },
   "jc_m": { "value": [1.0E-9, 1.0E-9] },

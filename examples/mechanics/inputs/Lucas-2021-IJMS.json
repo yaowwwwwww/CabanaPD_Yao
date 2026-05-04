@@ -13,7 +13,7 @@
   "elastic_modulus": { "value": [1.20E+11, 1.20E+11], "unit": "Pa" },
   "Poisson's_ratio": { "value": [0.34, 0.34] },
   "yield_stress": { "value": [3.80E+8, 9E+7], "unit": "Pa" },
-  "jc_B": { "value": [2.92E+9, 2.92E+9], "unit": "Pa" },
+  "jc_B": { "value": [2.92E+8, 2.92E+8], "unit": "Pa" },
   "jc_n": { "value": [0.31, 0.31] },
   "jc_C": { "value": [0.025, 0.025] },
   "jc_C2": { "value": [0.908, 0.908] },
