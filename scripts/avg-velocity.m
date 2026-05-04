@@ -159,24 +159,16 @@ substrate_type = 1;
         fclose(fout_vmag);
     end
 
-    % --------- compute vin / vout / CoR ---------
+    % --------- simplest CoR: last frame / first frame ---------
     if all(isnan(vavg))
         vin  = NaN;
         vout = NaN;
         CoR  = NaN;
     else
-        N_in = min(10, length(vavg));   %#ok<NASGU>
-        vin = mean(vavg(1:1));          % keep your original convention
+        vin  = vavg(1);          % 初始速度（第一帧）
+        vout = vavg(end);        % 最后一帧速度
 
-        % sign change (negative -> positive)
-        sign_change_idx = find(vavg(1:end-1) < 0 & vavg(2:end) > 0, 1);
-
-        if ~isempty(sign_change_idx)
-            vout = mean(vavg(sign_change_idx+1:end));
-        else
-            vout = 0;
-        end
-        CoR = abs(vout / vin);
+        CoR = vout / vin;   % 恢复系数
     end
 
     Lateralmax = max(dcoef);
@@ -254,12 +246,8 @@ substrate_type = 1;
             end
         end
 
-        % --------- 选择“最大压痕帧” = 速度反向一瞬间 ---------
-        if exist('sign_change_idx', 'var') && ~isempty(sign_change_idx)
-            h_idx = sign_change_idx;
-        else
-            [~, h_idx] = min(vavg);   % 最负速度
-        end
+        % --------- use the final frame for the reported indentation depth ---------
+        h_idx = numel(files);
 
         % --------- 在这一帧上计算压痕 ---------
         data_k = csvread(files(h_idx).name, 1, 0);
@@ -405,30 +393,20 @@ substrate_type = 1;
             hmean_series(k) = h_mean_frame;
         end
 
-        % ---- 残余：最后 20% 帧的平均 ----
+        % ---- residual indentation: use final frame only ----
         nFrames_valid = sum(~isnan(h_series));
         if nFrames_valid == 0
             h_residual      = NaN;
             A_residual      = NaN;
             h_mean_residual = NaN;
         else
-            res_start = max(1, floor(0.8 * nFrames));
-
-            res_h  = h_series(res_start:end);
-            res_A  = A_series(res_start:end);
-            res_hm = hmean_series(res_start:end);
-
-            res_h  = res_h(~isnan(res_h));
-            res_A  = res_A(~isnan(res_A));
-            res_hm = res_hm(~isnan(res_hm));
-
-            if isempty(res_h),  h_residual      = NaN; else, h_residual      = mean(res_h);  end
-            if isempty(res_A),  A_residual      = NaN; else, A_residual      = mean(res_A);  end
-            if isempty(res_hm), h_mean_residual = NaN; else, h_mean_residual = mean(res_hm); end
+            h_residual      = h_series(end);
+            A_residual      = A_series(end);
+            h_mean_residual = hmean_series(end);
         end
     end
 
-    fprintf("Residual indentation metrics (last 20%% frames):\n");
+    fprintf("Residual indentation metrics (last frame):\n");
     fprintf("  h_residual      = %.6e m\n",  h_residual);
     fprintf("  A_residual      = %.6e m^2\n", A_residual);
     fprintf("  h_mean_residual = %.6e m\n",  h_mean_residual);
