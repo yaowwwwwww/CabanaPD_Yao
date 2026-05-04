@@ -1,0 +1,5 @@
+# beta	CoR_abs	peak_flow_stress_GPa	peak_contact_force_N
+# estimated rows fill segmented or unusable runs for plotting only
+0.1	0.05468786	0.50539908	0.468881989
+0.5	0.06326484	0.518383777	0.395864504
+0.9	0.07184182	nan	0.322847019
